@@ -5,6 +5,12 @@
   "references": [
     {
       "path": "./apps/front-end"
+    },
+    {
+      "path": "./apps/api"
+    },
+    {
+      "path": "./apps/back-end"
     }
   ]
 }
