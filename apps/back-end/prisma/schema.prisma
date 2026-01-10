@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // эсвэл mysql / sqlite
+  url      = env("DATABASE_URL")
+}
+
+/* ================= ENUMS ================= */
+
+enum UserRole {
+  JOB_SEEKER
+  EMPLOYER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCEL
+}
+
+/* ================= MODELS ================= */
+
+model User {
+  userId    Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+
+  jobSeeker JobSeeker?
+  employer  Employer?
+
+  ratingsGiven    Rating[] @relation("RatingFromUser")
+  ratingsReceived Rating[] @relation("RatingToUser")
+}
+
+model JobSeeker {
+  jobseekerId Int    @id
+  userName    String?
+  phoneNumber String?
+  createdAt   DateTime @default(now())
+
+  user     User     @relation(fields: [jobseekerId], references: [userId])
+  requests Request[]
+}
+
+model Employer {
+  employerId   Int    @id
+  employerName String?
+  phoneNumber  String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [employerId], references: [userId])
+  jobs Job[]
+}
+
+model Job {
+  jobId       Int      @id @default(autoincrement())
+  title       String
+  description String
+  location    String
+  salary      Int
+  startTime   DateTime
+  endTime     DateTime
+  createdAt   DateTime @default(now())
+
+  employerId Int
+  employer   Employer @relation(fields: [employerId], references: [employerId])
+
+  requests Request[]
+  ratings  Rating[]
+}
+
+model Request {
+  requestId   Int           @id @default(autoincrement())
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+
+  jobSeekerId Int
+  jobId       Int
+
+  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [jobseekerId])
+  job       Job       @relation(fields: [jobId], references: [jobId])
+
+  @@unique([jobSeekerId, jobId]) // нэг ажилд 1 л хүсэлт
+}
+
+model Rating {
+  ratingId Int @id @default(autoincrement())
+
+  fromUserId Int
+  toUserId   Int
+  jobId      Int
+  score      Int
+
+  createdAt DateTime @default(now())
+
+  fromUser User @relation("RatingFromUser", fields: [fromUserId], references: [userId])
+  toUser   User @relation("RatingToUser", fields: [toUserId], references: [userId])
+  job      Job  @relation(fields: [jobId], references: [jobId])
+
+  @@unique([fromUserId, toUserId, jobId]) // нэг ажлаар 1 удаа үнэлнэ
+}
