@@ -12,6 +12,7 @@ type Job = {
   jobId: number;
   title: string;
   description: string;
+  category: string;
   location: string;
   salary: number;
   startTime: string;
@@ -102,6 +103,9 @@ export default function JobSeekerHome() {
                     <div>
                       📍 <span className="font-medium">{job.location}</span>
                     </div>
+                    <p className="text-sm text-black/70 line-clamp-3">
+                      <span className="font-medium">{job.category}</span>
+                    </p>
                     <div>
                       💰{' '}
                       <span className="font-medium">

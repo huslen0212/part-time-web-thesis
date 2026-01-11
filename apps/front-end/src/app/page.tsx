@@ -72,7 +72,7 @@ export default function Index() {
             )}
 
             {user?.role === 'EMPLOYER' && (
-              <Link href="/jobs/create" className="text-sm hover:underline">
+              <Link href="/createJob" className="text-sm hover:underline">
                 Ажил нэмэх
               </Link>
             )}

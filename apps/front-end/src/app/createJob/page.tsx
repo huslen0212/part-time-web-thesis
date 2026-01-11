@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 /* ===== JWT payload ===== */
 type JwtPayload = {
@@ -36,6 +43,7 @@ export default function CreateJobPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [category, setCategory] = useState('');
   const [salary, setSalary] = useState<number | ''>('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -72,7 +80,13 @@ export default function CreateJobPage() {
 
   /* ===== Validation ===== */
   const isInvalid =
-    !title || !description || !location || !salary || !startTime || !endTime;
+    !title ||
+    !description ||
+    !location ||
+    !category ||
+    !salary ||
+    !startTime ||
+    !endTime;
 
   const handleSubmit = async () => {
     if (isInvalid) {
@@ -94,6 +108,7 @@ export default function CreateJobPage() {
           title,
           description,
           location,
+          category,
           salary: Number(salary),
           startTime,
           endTime,
@@ -145,6 +160,23 @@ export default function CreateJobPage() {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Төрөл</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Ажлын төрөл сонгох" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Үйлчилгээ">Үйлчилгээ</SelectItem>
+                <SelectItem value="IT">IT</SelectItem>
+                <SelectItem value="Борлуулалт">Борлуулалт</SelectItem>
+                <SelectItem value="Оффис">Оффис</SelectItem>
+                <SelectItem value="Хүргэлт">Хүргэлт</SelectItem>
+                <SelectItem value="Бусад">Бусад</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

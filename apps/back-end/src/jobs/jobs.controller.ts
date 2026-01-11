@@ -16,12 +16,13 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       title,
       description,
       location,
+      category,
       salary,
       startTime,
       endTime,
     } = req.body;
 
-    if (!title || !description || !location || !salary || !startTime || !endTime) {
+    if (!title || !description || !location || !category || !salary || !startTime || !endTime) {
       return res.status(400).json({ message: 'Мэдээлэл дутуу' });
     }
 
@@ -30,6 +31,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
         title,
         description,
         location,
+        category,
         salary: Number(salary),
         startTime: new Date(startTime),
         endTime: new Date(endTime),

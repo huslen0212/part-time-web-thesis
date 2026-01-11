@@ -71,6 +71,7 @@ model Job {
   salary      Int
   startTime   DateTime
   endTime     DateTime
+  category    String
   createdAt   DateTime @default(now())
 
   employerId Int
