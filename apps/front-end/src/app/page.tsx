@@ -12,32 +12,28 @@ import {
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
 
-/* ===== JWT decode helper ===== */
+import JobSeekerHome from '@/components/jobSeekerHome';
+import EmployerHome from '@/components/employerHome';
+
+/* ===== JWT decode ===== */
 type JwtPayload = {
   userId: number;
   role: 'JOB_SEEKER' | 'EMPLOYER';
   userName: string;
-  exp: number; // unix timestamp
+  exp: number;
 };
 
 function decodeToken(token: string): JwtPayload | null {
   try {
-    const payload = token.split('.')[1];
-    return JSON.parse(atob(payload));
+    return JSON.parse(atob(token.split('.')[1]));
   } catch {
     return null;
   }
 }
 
 export default function Index() {
-  const [userName, setUserName] = useState<string | null>(null);
+  const [user, setUser] = useState<JwtPayload | null>(null);
   const router = useRouter();
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUserName(null);
-    router.push('/');
-  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -46,50 +42,54 @@ export default function Index() {
     const decoded = decodeToken(token);
     if (!decoded) return;
 
-    // ⏱ token хугацаа дууссан эсэх
     const now = Math.floor(Date.now() / 1000);
     if (decoded.exp < now) {
       localStorage.removeItem('token');
       return;
     }
 
-    setUserName(decoded.userName);
+    setUser(decoded);
   }, []);
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    router.push('/login');
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-black">
       {/* ================= Header ================= */}
       <header className="border-b border-black/10">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <h1 className="text-lg font-semibold tracking-tight">
-            Part-Time Job System
-          </h1>
+          <h1 className="text-lg font-semibold">Part-Time Job System</h1>
 
           <nav className="flex items-center gap-6">
-            <Link href="/calendar" className="text-sm hover:underline">
-              Ажил хайх
-            </Link>
+            {user?.role === 'JOB_SEEKER' && (
+              <Link href="/calendar" className="text-sm hover:underline">
+                Ажил хайх
+              </Link>
+            )}
 
-            {userName ? (
+            {user?.role === 'EMPLOYER' && (
+              <Link href="/jobs/create" className="text-sm hover:underline">
+                Ажил нэмэх
+              </Link>
+            )}
+
+            {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="px-3 py-1 rounded-lg text-sm"
-                  >
-                    <span className="flex items-center gap-2">{userName}</span>
-                    <ChevronDown className="w-4 h-4 opacity-50" />
+                  <Button variant="outline" size="sm">
+                    {user.userName}
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
-
-                <DropdownMenuContent align="end" className="w-[160px]">
+                <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => router.push('/profile')}>
                     Профайл
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    Гарах
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout}>Гарах</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -104,69 +104,11 @@ export default function Index() {
         </div>
       </header>
 
-      {/* ================= Hero ================= */}
+      {/* ================= Role based Home ================= */}
       <main className="flex-1">
-        <section>
-          <div className="max-w-7xl mx-auto px-6 py-24 text-center">
-            <h2 className="text-4xl font-bold mb-6">
-              Цагийн ажил зуучлалын систем
-            </h2>
-            <p className="max-w-3xl mx-auto mb-10 text-black/70">
-              Оюутан болон ажил олгогчдыг холбосон, цагийн ажил хайх, удирдах,
-              хуваарьт суурилсан веб систем
-            </p>
-
-            <div className="flex flex-col sm:flex-row justify-center gap-6">
-              {!userName && (
-                <Link
-                  href="/login"
-                  className="px-8 py-4 rounded-xl border border-black font-medium hover:bg-black hover:text-white transition"
-                >
-                  Нэвтрэх
-                </Link>
-              )}
-
-              <Link
-                href="/calendar"
-                className="px-8 py-4 rounded-xl border border-black font-medium hover:bg-black hover:text-white transition"
-              >
-                Ажил хайх
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ================= Features ================= */}
-        <section className="border-t border-black/10 py-20">
-          <div className="max-w-7xl mx-auto px-6">
-            <h3 className="text-2xl font-semibold text-center mb-12">
-              Системийн боломжууд
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="rounded-xl border border-black/10 p-6 text-center">
-                <h4 className="font-semibold mb-2">Ажил хайх</h4>
-                <p className="text-sm text-black/70">
-                  Цаг, байршил, цалингаар тохирох ажлыг олох
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-black/10 p-6 text-center">
-                <h4 className="font-semibold mb-2">Хуваарь удирдах</h4>
-                <p className="text-sm text-black/70">
-                  Ажиллах боломжит цагаа календарь хэлбэрээр удирдах
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-black/10 p-6 text-center">
-                <h4 className="font-semibold mb-2">Зуучлал</h4>
-                <p className="text-sm text-black/70">
-                  Ажил олгогч ба ажил хайгчийг шууд холбох
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
+        {!user && <JobSeekerHome />}
+        {user?.role === 'JOB_SEEKER' && <JobSeekerHome />}
+        {user?.role === 'EMPLOYER' && <EmployerHome />}
       </main>
 
       {/* ================= Footer ================= */}
