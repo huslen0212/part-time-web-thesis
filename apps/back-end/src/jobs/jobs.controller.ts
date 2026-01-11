@@ -2,10 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-/**
- * POST /jobs
- * EMPLOYER only
- */
+// POST /jobs
 export const createJob = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
@@ -24,6 +21,16 @@ export const createJob = async (req: AuthRequest, res: Response) => {
 
     if (!title || !description || !location || !category || !salary || !startTime || !endTime) {
       return res.status(400).json({ message: 'Мэдээлэл дутуу' });
+    }
+
+    if (Number(salary) <= 0) {
+      return res.status(400).json({ message: 'Цалин буруу утгатай' });
+    }
+
+    if (new Date(endTime) <= new Date(startTime)) {
+      return res.status(400).json({
+        message: 'Дуусах цаг эхлэх цагаас хойш байх ёстой',
+      });
     }
 
     const job = await prisma.job.create({
@@ -49,10 +56,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
   }
 };
 
-/**
- * GET /jobs
- * PUBLIC
- */
+// GET /jobs
 export const getJobs = async (_req: Request, res: Response) => {
   try {
     const jobs = await prisma.job.findMany({

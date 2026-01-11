@@ -3,15 +3,7 @@ import { prisma } from '../prisma';
 import { signToken } from './jwt';
 
 
-/**
- * REGISTER
- * Body:
- * {
- *   user: { email, password, role },
- *   jobSeeker?: { userName, phoneNumber },
- *   employer?: { employerName, phoneNumber }
- * }
- */
+/// REGISTER
 export const register = async (req: Request, res: Response) => {
   try {
     const { user, jobSeeker, employer } = req.body;
@@ -34,7 +26,7 @@ export const register = async (req: Request, res: Response) => {
       const createdUser = await tx.user.create({
         data: {
           email: user.email,
-          password: user.password, // ❗ plain text
+          password: user.password,
           role: user.role,
         },
       });
@@ -73,11 +65,7 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * LOGIN
- * Body:
- * { email, password }
- */
+// LOGIN
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -99,7 +87,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     if (user.password !== password) {
-      return res.status(400).json({ message: 'Нууц үг буруу' });
+      return res.status(400).json({ message: 'Имэйл эсвэл нууц үг буруу байна' });
     }
 
     const userName =

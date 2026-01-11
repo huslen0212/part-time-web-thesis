@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +25,6 @@ const API_URL = 'http://localhost:3001';
 export default function RegisterPage() {
   const router = useRouter();
   const [role, setRole] = useState<Role | ''>('');
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -33,12 +34,65 @@ export default function RegisterPage() {
   const [employerName, setEmployerName] = useState('');
   const [employerPhone, setEmployerPhone] = useState('');
 
-  const [error, setError] = useState('');
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\d{8}$/;
+
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    setError('');
-    setLoading(true);
+    if (!role) {
+      toast.warning('Хэрэглэгчийн төрөл сонгоно уу');
+      return;
+    }
+
+    if (!email) {
+      toast.warning('Имэйл хаягаа оруулна уу');
+      return;
+    }
+
+    if (!password) {
+      toast.warning('Нууц үгээ оруулна уу');
+      return;
+    }
+
+    if (!emailRegex.test(email)) {
+      toast.warning('Имэйл хаяг буруу форматтай байна');
+      return;
+    }
+
+    if (role === 'JOB_SEEKER') {
+      if (!userName) {
+        toast.warning('Нэрээ оруулна уу');
+        return;
+      }
+
+      if (!jobSeekerPhone) {
+        toast.warning('Утасны дугаараа оруулан уу');
+        return;
+      }
+
+      if (!phoneRegex.test(jobSeekerPhone)) {
+        toast.warning('Утасны дугаар 8 оронтой байх ёстой');
+        return;
+      }
+    }
+
+    if (role === 'EMPLOYER') {
+      if (!userName) {
+        toast.warning('Нэрээ оруулна уу');
+        return;
+      }
+
+      if (!employerPhone) {
+        toast.warning('Утасны дугаараа оруулан уу');
+        return;
+      }
+
+      if (!phoneRegex.test(employerPhone)) {
+        toast.warning('Утасны дугаар 8 оронтой байх ёстой');
+        return;
+      }
+    }
 
     const payload =
       role === 'JOB_SEEKER'
@@ -57,6 +111,8 @@ export default function RegisterPage() {
             },
           };
 
+    setLoading(true);
+
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
@@ -67,31 +123,32 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || 'Бүртгэл амжилтгүй');
+        toast.error(data.message || 'Бүртгэл амжилтгүй');
         return;
       }
 
+      toast.success('Бүртгэл амжилттай. Нэвтэрч орно уу');
       router.push('/login');
     } catch {
-      setError('Сервертэй холбогдож чадсангүй');
+      toast.error('Сервертэй холбогдож чадсангүй');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <Card className="w-full max-w-lg shadow-2xl border-0">
+    <div className="min-h-screen flex items-center justify-center">
+      <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-semibold">Бүртгүүлэх</CardTitle>
+          <CardTitle>Бүртгүүлэх</CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
+        <CardContent className="space-y-4">
+          <div>
             <Label>Хэрэглэгчийн төрөл</Label>
             <Select value={role} onValueChange={(v) => setRole(v as Role)}>
               <SelectTrigger>
-                <SelectValue placeholder="Төрөл сонгох" />
+                <SelectValue placeholder="Сонгох" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="JOB_SEEKER">Ажил хайгч</SelectItem>
@@ -102,19 +159,17 @@ export default function RegisterPage() {
 
           <Separator />
 
-          <div className="space-y-4">
-            <Input
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          <Input
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
           {role === 'JOB_SEEKER' && (
             <>
@@ -127,7 +182,11 @@ export default function RegisterPage() {
               <Input
                 placeholder="Утас"
                 value={jobSeekerPhone}
-                onChange={(e) => setJobSeekerPhone(e.target.value)}
+                maxLength={8}
+                inputMode="numeric"
+                onChange={(e) =>
+                  setJobSeekerPhone(e.target.value.replace(/\D/g, ''))
+                }
               />
             </>
           )}
@@ -143,24 +202,26 @@ export default function RegisterPage() {
               <Input
                 placeholder="Утас"
                 value={employerPhone}
-                onChange={(e) => setEmployerPhone(e.target.value)}
+                maxLength={8}
+                inputMode="numeric"
+                onChange={(e) =>
+                  setEmployerPhone(e.target.value.replace(/\D/g, ''))
+                }
               />
             </>
           )}
 
-          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-
           <Button
-            className="w-full h-11"
+            className="w-full"
             onClick={handleRegister}
-            disabled={!role || loading}
+            disabled={loading}
           >
             {loading ? 'Түр хүлээнэ үү...' : 'Бүртгүүлэх'}
           </Button>
 
-          <div className="text-center text-sm text-muted-foreground">
+          <div className="text-center text-sm">
             Бүртгэлтэй юу?{' '}
-            <Link href="/login" className="text-primary hover:underline">
+            <Link href="/login" className="text-primary underline">
               Нэвтрэх
             </Link>
           </div>

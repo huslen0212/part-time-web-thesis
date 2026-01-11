@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,9 +37,7 @@ const API_URL = 'http://localhost:3001';
 
 export default function CreateJobPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   /* ===== Form states ===== */
   const [title, setTitle] = useState('');
@@ -63,39 +63,50 @@ export default function CreateJobPage() {
       return;
     }
 
-    // ⏱ token хугацаа шалгах
     const now = Math.floor(Date.now() / 1000);
     if (decoded.exp < now) {
       localStorage.removeItem('token');
       router.push('/login');
       return;
     }
-
-    // 👮 employer биш бол
-    if (decoded.role !== 'EMPLOYER') {
-      router.push('/');
-      return;
-    }
   }, [router]);
 
-  /* ===== Validation ===== */
-  const isInvalid =
-    !title ||
-    !description ||
-    !location ||
-    !category ||
-    !salary ||
-    !startTime ||
-    !endTime;
-
+  /* ===== Submit ===== */
   const handleSubmit = async () => {
-    if (isInvalid) {
-      setError('Бүх талбарыг бөглөнө үү');
+    // 1️⃣ Required fields
+    if (
+      !title ||
+      !description ||
+      !location ||
+      !category ||
+      salary === '' ||
+      !startTime ||
+      !endTime
+    ) {
+      toast.warning('Бүх талбарыг бөглөнө үү');
       return;
     }
 
+    // 2️⃣ Business rules
+    if (title.length < 3) {
+      toast.warning('Ажлын гарчиг хамгийн багадаа 3 тэмдэгт байна');
+      return;
+    }
+
+    if (description.length < 20) {
+      toast.warning('Тайлбар дор хаяж 20 тэмдэгттэй байна');
+      return;
+    }
+
+    if (Number(salary) <= 0) {
+      toast.warning('Цалин 0-с их тоо байна');
+      return;
+    }
+
+    /* ===============================
+   3️⃣ API CALL
+  =============================== */
     setLoading(true);
-    setError('');
 
     try {
       const res = await fetch(`${API_URL}/jobs`, {
@@ -118,13 +129,14 @@ export default function CreateJobPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || 'Ажил нэмэхэд алдаа гарлаа');
+        toast.error(data.message || 'Ажил нэмэхэд алдаа гарлаа');
         return;
       }
 
+      toast.success('Ажил амжилттай нэмэгдлээ');
       router.push('/');
     } catch {
-      setError('Сервертэй холбогдож чадсангүй');
+      toast.error('Сервертэй холбогдож чадсангүй');
     } finally {
       setLoading(false);
     }
@@ -183,6 +195,7 @@ export default function CreateJobPage() {
             <Label>Цалин (₮)</Label>
             <Input
               type="number"
+              min={0}
               value={salary}
               onChange={(e) =>
                 setSalary(e.target.value ? Number(e.target.value) : '')
@@ -210,13 +223,7 @@ export default function CreateJobPage() {
             </div>
           </div>
 
-          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={loading || isInvalid}
-          >
+          <Button className="w-full" onClick={handleSubmit} disabled={loading}>
             {loading ? 'Хадгалж байна...' : 'Ажил нэмэх'}
           </Button>
         </CardContent>

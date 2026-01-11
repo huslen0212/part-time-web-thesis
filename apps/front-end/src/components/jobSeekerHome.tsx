@@ -17,6 +17,7 @@ type Job = {
   salary: number;
   startTime: string;
   endTime: string;
+  createdAt: string;
   employer?: {
     employerName?: string | null;
   };
@@ -86,36 +87,59 @@ export default function JobSeekerHome() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
-              <Card key={job.jobId} className="border-black/10">
+              <Card key={job.jobId} className="border-black/10 relative">
                 <CardHeader>
+                  {/* ajiliin ner */}
                   <CardTitle className="text-lg">{job.title}</CardTitle>
+
+                  {/* ajil oruulsan hun/baiguullaga */}
                   <p className="text-sm text-black/60">
                     {job.employer?.employerName || 'Байгууллага'}
                   </p>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pb-10">
+                  {/* ajiliin tailbar */}
                   <p className="text-sm text-black/70 line-clamp-3">
                     {job.description}
                   </p>
 
                   <div className="text-sm space-y-1">
+                    {/* ajiliin bairshil */}
                     <div>
                       📍 <span className="font-medium">{job.location}</span>
                     </div>
-                    <p className="text-sm text-black/70 line-clamp-3">
-                      <span className="font-medium">{job.category}</span>
-                    </p>
+
+                    {/* ajiliin turul */}
                     <div>
-                      💰{' '}
+                      🏷️ <span className="font-medium">{job.category}</span>
+                    </div>
+
+                    {/* tsalin */}
+                    <div>
+                      💰
                       <span className="font-medium">
                         {job.salary.toLocaleString()} ₮
                       </span>
                     </div>
+
+                    {/* ehleh duusah tsag */}
                     <div className="text-black/60">
-                      ⏰ {new Date(job.startTime).toLocaleString()} –{' '}
-                      {new Date(job.endTime).toLocaleString()}
+                      ⏰ {new Date(job.startTime).toLocaleString('mn-MN')} –{' '}
+                      {new Date(job.endTime).toLocaleString('mn-MN')}
                     </div>
+                  </div>
+
+                  {/* niitelsen ognoo */}
+                  <div className="absolute bottom-3 right-4 text-xs text-black/50 flex items-center gap-1">
+                    🗓️
+                    {new Date(job.createdAt).toLocaleString('mn-MN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </div>
 
                   <div className="flex gap-3 pt-2">

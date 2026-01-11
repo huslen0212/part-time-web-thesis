@@ -15,7 +15,6 @@ import { ChevronDown } from 'lucide-react';
 import JobSeekerHome from '@/components/jobSeekerHome';
 import EmployerHome from '@/components/employerHome';
 
-/* ===== JWT decode ===== */
 type JwtPayload = {
   userId: number;
   role: 'JOB_SEEKER' | 'EMPLOYER';
@@ -59,7 +58,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-black">
-      {/* ================= Header ================= */}
+      {/* header */}
       <header className="border-b border-black/10">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <h1 className="text-lg font-semibold">Part-Time Job System</h1>
@@ -104,14 +103,14 @@ export default function Index() {
         </div>
       </header>
 
-      {/* ================= Role based Home ================= */}
+      {/* content */}
       <main className="flex-1">
         {!user && <JobSeekerHome />}
         {user?.role === 'JOB_SEEKER' && <JobSeekerHome />}
         {user?.role === 'EMPLOYER' && <EmployerHome />}
       </main>
 
-      {/* ================= Footer ================= */}
+      {/* footer */}
       <footer className="border-t border-black/10">
         <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row justify-between text-sm text-black/60">
           <span>© 2026 · Дипломын ажил</span>
