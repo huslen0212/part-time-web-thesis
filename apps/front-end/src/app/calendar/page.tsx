@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { sampleJobs, jobCategory } from '@/app/data/jobs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
   Trash2,
   ChevronDown,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface Job {
   id: number;
@@ -129,7 +130,26 @@ const categoryColors: Record<string, string> = {
   Ивент: 'bg-rose-500 border-rose-600',
 };
 
-export default function Home() {
+export default function CalendarPage() {
+  const router = useRouter();
+  const [checkedAuth, setCheckedAuth] = useState(false);
+
+  useEffect(() => {
+    const token =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('accessToken')
+        : null;
+
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
+
+    setCheckedAuth(true);
+  }, [router]);
+
+  if (!checkedAuth) return null;
+
   const [inputs, setInputs] = useState<
     { day: string; start: string; end: string; type: string }[]
   >([{ day: '', start: '', end: '', type: '' }]);
