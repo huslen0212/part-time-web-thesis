@@ -53,7 +53,7 @@ export default function Index() {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    router.push('/login');
+    router.push('/');
   };
 
   return (

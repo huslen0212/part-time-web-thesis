@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { sampleJobs, jobCategory } from '@/app/data/jobs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,8 @@ import {
   Trash2,
   ChevronDown,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+
+/* ================= TYPES ================= */
 
 interface Job {
   id: number;
@@ -42,17 +44,14 @@ interface EventBox extends Job {
   fitScore: number;
 }
 
+/* ================= HELPERS ================= */
+
 function hhmmToFloat(t: string): number {
   const [h, m] = t.split(':').map(Number);
   return h + m / 60;
 }
 
-function calculateOverlap(
-  js: number,
-  je: number,
-  us: number,
-  ue: number,
-): number {
+function calculateOverlap(js: number, je: number, us: number, ue: number) {
   const start = Math.max(js, us);
   const end = Math.min(je, ue);
   if (start >= end) return 0;
@@ -61,12 +60,7 @@ function calculateOverlap(
   return ((overlap / (je - js)) * 100 + (overlap / (ue - us)) * 100) / 2;
 }
 
-function calculateFitScore(
-  js: number,
-  je: number,
-  us: number,
-  ue: number,
-): number {
+function calculateFitScore(js: number, je: number, us: number, ue: number) {
   let score = (calculateOverlap(js, je, us, ue) / 100) * 40;
 
   if (js >= us && je <= ue) score += 20;
@@ -79,7 +73,7 @@ function calculateFitScore(
   return Math.round(score);
 }
 
-function groupOverlappingEvents(events: EventBox[]): EventBox[][] {
+function groupOverlappingEvents(events: EventBox[]) {
   const sorted = [...events].sort((a, b) => a.top - b.top);
   const groups: EventBox[][] = [];
 
@@ -98,6 +92,8 @@ function groupOverlappingEvents(events: EventBox[]): EventBox[][] {
   return groups;
 }
 
+/* ================= CONSTANTS ================= */
+
 const dayIndex: Record<string, number> = {
   Даваа: 0,
   Мягмар: 1,
@@ -108,15 +104,7 @@ const dayIndex: Record<string, number> = {
   Ням: 6,
 };
 
-const dayList = [
-  'Даваа',
-  'Мягмар',
-  'Лхагва',
-  'Пүрэв',
-  'Баасан',
-  'Бямба',
-  'Ням',
-];
+const dayList = Object.keys(dayIndex);
 
 const categoryColors: Record<string, string> = {
   Худалдаа: 'bg-blue-500 border-blue-600',
@@ -130,15 +118,23 @@ const categoryColors: Record<string, string> = {
   Ивент: 'bg-rose-500 border-rose-600',
 };
 
+/* ================= COMPONENT ================= */
+
 export default function CalendarPage() {
   const router = useRouter();
+
+  /* ✅ БҮХ useState — ЭХЭНД */
   const [checkedAuth, setCheckedAuth] = useState(false);
 
+  const [inputs, setInputs] = useState<
+    { day: string; start: string; end: string; type: string }[]
+  >([{ day: '', start: '', end: '', type: '' }]);
+
+  const [events, setEvents] = useState<EventBox[]>([]);
+
+  /* ✅ Auth guard */
   useEffect(() => {
-    const token =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('accessToken')
-        : null;
+    const token = localStorage.getItem('token');
 
     if (!token) {
       router.replace('/login');
@@ -148,24 +144,19 @@ export default function CalendarPage() {
     setCheckedAuth(true);
   }, [router]);
 
+  /* ✅ Conditional return ХАМГИЙН СҮҮЛД */
   if (!checkedAuth) return null;
 
-  const [inputs, setInputs] = useState<
-    { day: string; start: string; end: string; type: string }[]
-  >([{ day: '', start: '', end: '', type: '' }]);
-
-  const [events, setEvents] = useState<EventBox[]>([]);
+  /* ================= HANDLERS ================= */
 
   const removeInputRow = (index: number) => {
-    if (inputs.length > 1) {
-      const newInputs = [...inputs];
-      newInputs.splice(index, 1);
-      setInputs(newInputs);
-    }
+    if (inputs.length <= 1) return;
+    setInputs(inputs.filter((_, i) => i !== index));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     const result: EventBox[] = [];
 
     inputs.forEach((input) => {
@@ -196,15 +187,7 @@ export default function CalendarPage() {
       });
     });
 
-    const unique = result.reduce((acc, j) => {
-      const found = acc.find((x) => x.id === j.id);
-      if (!found || j.fitScore > found.fitScore) {
-        return [...acc.filter((x) => x.id !== j.id), j];
-      }
-      return acc;
-    }, [] as EventBox[]);
-
-    setEvents(unique);
+    setEvents(result);
   };
 
   return (
