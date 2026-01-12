@@ -76,3 +76,35 @@ export const getJobs = async (_req: Request, res: Response) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
+// GET /jobs/:id
+export const getJobById = async (req: Request, res: Response) => {
+  try {
+    const jobId = Number(req.params.id);
+
+    if (isNaN(jobId)) {
+      return res.status(400).json({ message: 'Job ID буруу' });
+    }
+
+    const job = await prisma.job.findUnique({
+      where: { jobId },
+      include: {
+        employer: {
+          select: {
+            employerName: true,
+          },
+        },
+      },
+    });
+
+    if (!job) {
+      return res.status(404).json({ message: 'Ажил олдсонгүй' });
+    }
+
+    return res.json(job);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+

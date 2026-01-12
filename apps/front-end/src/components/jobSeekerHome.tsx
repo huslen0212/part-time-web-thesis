@@ -143,9 +143,12 @@ export default function JobSeekerHome() {
                   </div>
 
                   <div className="flex gap-3 pt-2">
-                    <Button variant="outline" className="w-full">
-                      Дэлгэрэнгүй
-                    </Button>
+                    <Link href={`/jobs/${job.jobId}`} className="w-full">
+                      <Button variant="outline" className="w-full">
+                        Дэлгэрэнгүй
+                      </Button>
+                    </Link>
+
                     <Button className="w-full">Хүсэлт илгээх</Button>
                   </div>
                 </CardContent>
