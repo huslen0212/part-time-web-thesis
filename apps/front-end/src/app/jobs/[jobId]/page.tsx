@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -66,42 +68,52 @@ export default function JobDetailPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-16">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">{job.title}</CardTitle>
-          <p className="text-sm text-black/60">
-            {job.employer?.employerName || 'Байгууллага'}
-          </p>
-        </CardHeader>
+    <div className="min-h-screen flex flex-col bg-white">
+      <Header />
 
-        <CardContent className="space-y-6">
-          <p className="text-black/80 whitespace-pre-line">{job.description}</p>
+      <main className="flex-1">
+        <div className="max-w-3xl mx-auto px-6 py-16">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">{job.title}</CardTitle>
+              <p className="text-sm text-black/60">
+                {job.employer?.employerName || 'Байгууллага'}
+              </p>
+            </CardHeader>
 
-          <div className="space-y-2 text-sm">
-            <div>
-              📍 <b>{job.location}</b>
-            </div>
-            <div>
-              🏷️ <b>{job.category}</b>
-            </div>
-            <div>
-              💰 <b>{job.salary.toLocaleString()} ₮</b>
-            </div>
-            <div>
-              ⏰ {new Date(job.startTime).toLocaleString('mn-MN')} –{' '}
-              {new Date(job.endTime).toLocaleString('mn-MN')}
-            </div>
-          </div>
+            <CardContent className="space-y-6">
+              <p className="text-black/80 whitespace-pre-line">
+                {job.description}
+              </p>
 
-          <div className="flex gap-4 pt-4">
-            <Button variant="outline" onClick={() => router.back()}>
-              Буцах
-            </Button>
-            <Button>Хүсэлт илгээх</Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="space-y-2 text-sm">
+                <div>
+                  📍 <b>{job.location}</b>
+                </div>
+                <div>
+                  🏷️ <b>{job.category}</b>
+                </div>
+                <div>
+                  💰 <b>{job.salary.toLocaleString()} ₮</b>
+                </div>
+                <div>
+                  ⏰ {new Date(job.startTime).toLocaleString('mn-MN')} –{' '}
+                  {new Date(job.endTime).toLocaleString('mn-MN')}
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button variant="outline" onClick={() => router.back()}>
+                  Буцах
+                </Button>
+                <Button>Хүсэлт илгээх</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

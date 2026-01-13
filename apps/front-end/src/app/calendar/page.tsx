@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { sampleJobs, jobCategory } from '@/app/data/jobs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -191,8 +193,9 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 font-sans text-gray-900">
-      <main className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-50/50 font-sans text-gray-900">
+      <Header />
+      <main className="max-w-7xl mx-auto p-10 space-y-8">
         {/* ================= HEADER ================= */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -515,6 +518,7 @@ export default function CalendarPage() {
           </div>
         </Card>
       </main>
+      <Footer />
     </div>
   );
 }

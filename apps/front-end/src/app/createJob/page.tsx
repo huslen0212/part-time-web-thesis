@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -143,91 +144,101 @@ export default function CreateJobPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
-      <Card className="w-full max-w-xl border-black/10">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold">
-            Шинэ ажил нэмэх
-          </CardTitle>
-        </CardHeader>
+    <div className="min-h-screen bg-white flex flex-col">
+      <Header />
 
-        <CardContent className="space-y-5">
-          <div className="space-y-2">
-            <Label>Ажлын гарчиг</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
+      <main className="flex-1 flex items-center p-10 justify-center px-4">
+        <Card className="w-full max-w-xl border-black/10">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">
+              Шинэ ажил нэмэх
+            </CardTitle>
+          </CardHeader>
 
-          <div className="space-y-2">
-            <Label>Тайлбар</Label>
-            <Textarea
-              rows={4}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Байршил</Label>
-            <Input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Төрөл</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Ажлын төрөл сонгох" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Үйлчилгээ">Үйлчилгээ</SelectItem>
-                <SelectItem value="IT">IT</SelectItem>
-                <SelectItem value="Борлуулалт">Борлуулалт</SelectItem>
-                <SelectItem value="Оффис">Оффис</SelectItem>
-                <SelectItem value="Хүргэлт">Хүргэлт</SelectItem>
-                <SelectItem value="Бусад">Бусад</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Цалин (₮)</Label>
-            <Input
-              type="number"
-              min={0}
-              value={salary}
-              onChange={(e) =>
-                setSalary(e.target.value ? Number(e.target.value) : '')
-              }
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label>Эхлэх цаг</Label>
-              <Input
-                type="datetime-local"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+              <Label>Ажлын гарчиг</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Тайлбар</Label>
+              <Textarea
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Дуусах цаг</Label>
+              <Label>Байршил</Label>
               <Input
-                type="datetime-local"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
               />
             </div>
-          </div>
 
-          <Button className="w-full" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Хадгалж байна...' : 'Ажил нэмэх'}
-          </Button>
-        </CardContent>
-      </Card>
+            <div className="space-y-2">
+              <Label>Төрөл</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Ажлын төрөл сонгох" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Үйлчилгээ">Үйлчилгээ</SelectItem>
+                  <SelectItem value="IT">IT</SelectItem>
+                  <SelectItem value="Борлуулалт">Борлуулалт</SelectItem>
+                  <SelectItem value="Оффис">Оффис</SelectItem>
+                  <SelectItem value="Хүргэлт">Хүргэлт</SelectItem>
+                  <SelectItem value="Бусад">Бусад</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Цалин (₮)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={salary}
+                onChange={(e) =>
+                  setSalary(e.target.value ? Number(e.target.value) : '')
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Эхлэх цаг</Label>
+                <Input
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Дуусах цаг</Label>
+                <Input
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <Button
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? 'Хадгалж байна...' : 'Ажил нэмэх'}
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+
+      <Footer />
     </div>
   );
 }
