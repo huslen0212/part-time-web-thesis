@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 const API_URL = 'http://localhost:3001';
 
@@ -31,6 +32,40 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const sendRequest = async () => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          jobId: Number(jobId),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.message || 'Алдаа гарлаа');
+        return;
+      }
+
+      // ✅ SUCCESS TOAST
+      toast.success('Хүсэлт амжилттай илгээгдлээ');
+    } catch {
+      toast.error('Сервертэй холбогдож чадсангүй');
+    }
+  };
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -106,7 +141,7 @@ export default function JobDetailPage() {
                 <Button variant="outline" onClick={() => router.back()}>
                   Буцах
                 </Button>
-                <Button>Хүсэлт илгээх</Button>
+                <Button onClick={sendRequest}>Хүсэлт илгээх</Button>
               </div>
             </CardContent>
           </Card>

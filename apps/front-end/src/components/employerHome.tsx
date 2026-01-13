@@ -17,6 +17,13 @@ export default function EmployerHome() {
           >
             Ажил нэмэх
           </Link>
+
+          <Link
+            href="/requests"
+            className="px-8 py-4 rounded-xl border border-black font-medium hover:bg-black hover:text-white transition"
+          >
+            Хүсэлтүүд харах
+          </Link>
         </div>
       </section>
 
