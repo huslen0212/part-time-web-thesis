@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { Building2, Calendar, DollarSign, List, MapPin } from 'lucide-react';
 
 const API_URL = 'http://localhost:3001';
 
@@ -60,7 +61,6 @@ export default function JobDetailPage() {
         return;
       }
 
-      // ✅ SUCCESS TOAST
       toast.success('Хүсэлт амжилттай илгээгдлээ');
     } catch {
       toast.error('Сервертэй холбогдож чадсангүй');
@@ -111,7 +111,8 @@ export default function JobDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">{job.title}</CardTitle>
-              <p className="text-sm text-black/60">
+              <p className="text-sm text-black/60 flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
                 {job.employer?.employerName || 'Байгууллага'}
               </p>
             </CardHeader>
@@ -122,17 +123,24 @@ export default function JobDetailPage() {
               </p>
 
               <div className="space-y-2 text-sm">
-                <div>
-                  📍 <b>{job.location}</b>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <b>{job.location}</b>
                 </div>
-                <div>
-                  🏷️ <b>{job.category}</b>
+
+                <div className="flex items-center gap-2">
+                  <List className="w-4 h-4" />
+                  <b>{job.category}</b>
                 </div>
-                <div>
-                  💰 <b>{job.salary.toLocaleString()} ₮</b>
+
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  <b>{job.salary.toLocaleString()} ₮</b>
                 </div>
-                <div>
-                  ⏰ {new Date(job.startTime).toLocaleString('mn-MN')} –{' '}
+
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  {new Date(job.startTime).toLocaleString('mn-MN')} –{' '}
                   {new Date(job.endTime).toLocaleString('mn-MN')}
                 </div>
               </div>

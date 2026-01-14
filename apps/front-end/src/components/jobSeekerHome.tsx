@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Building2, Calendar, DollarSign, List, MapPin } from 'lucide-react';
 
 const API_URL = 'http://localhost:3001';
 
-/* ===== Types ===== */
 type Job = {
   jobId: number;
   title: string;
@@ -52,7 +52,6 @@ export default function JobSeekerHome() {
 
   return (
     <>
-      {/* ================= Hero ================= */}
       <section className="border-b border-black/10">
         <div className="max-w-7xl mx-auto px-6 py-20 text-center">
           <h2 className="text-4xl font-bold mb-4">Цагийн ажил хайх</h2>
@@ -68,7 +67,6 @@ export default function JobSeekerHome() {
         </div>
       </section>
 
-      {/* ================= Jobs ================= */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-6">
           <h3 className="text-2xl font-semibold mb-8">Нээлттэй ажлууд</h3>
@@ -89,11 +87,10 @@ export default function JobSeekerHome() {
             {jobs.map((job) => (
               <Card key={job.jobId} className="border-black/10 relative">
                 <CardHeader>
-                  {/* ajiliin ner */}
                   <CardTitle className="text-lg">{job.title}</CardTitle>
 
-                  {/* ajil oruulsan hun/baiguullaga */}
-                  <p className="text-sm text-black/60">
+                  <p className="flex items-center gap-2 text-sm text-black/60">
+                    <Building2 className="w-4 h-4" />
                     {job.employer?.employerName || 'Байгууллага'}
                   </p>
                 </CardHeader>
@@ -106,26 +103,29 @@ export default function JobSeekerHome() {
 
                   <div className="text-sm space-y-1">
                     {/* ajiliin bairshil */}
-                    <div>
-                      📍 <span className="font-medium">{job.location}</span>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      <span className="font-medium">{job.location}</span>
                     </div>
 
                     {/* ajiliin turul */}
-                    <div>
-                      🏷️ <span className="font-medium">{job.category}</span>
+                    <div className="flex items-center gap-2">
+                      <List className="w-4 h-4" />
+                      <span className="font-medium">{job.category}</span>
                     </div>
 
                     {/* tsalin */}
-                    <div>
-                      💰
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
                       <span className="font-medium">
                         {job.salary.toLocaleString()} ₮
                       </span>
                     </div>
 
                     {/* ehleh duusah tsag */}
-                    <div className="text-black/60">
-                      ⏰ {new Date(job.startTime).toLocaleString('mn-MN')} –{' '}
+                    <div className="text-black/60 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {new Date(job.startTime).toLocaleString('mn-MN')} –{' '}
                       {new Date(job.endTime).toLocaleString('mn-MN')}
                     </div>
                   </div>

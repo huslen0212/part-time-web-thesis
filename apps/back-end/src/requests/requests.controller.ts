@@ -79,6 +79,7 @@ export const getEmployerRequests = async (
           select: {
             jobId: true,
             title: true,
+            description: true,
           },
         },
         jobSeeker: {

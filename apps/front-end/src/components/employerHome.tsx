@@ -3,30 +3,6 @@ import Link from 'next/link';
 export default function EmployerHome() {
   return (
     <>
-      {/* Hero */}
-      <section>
-        <div className="max-w-7xl mx-auto px-6 py-24 text-center">
-          <h2 className="text-4xl font-bold mb-6">Ажил олгогчийн самбар</h2>
-          <p className="max-w-3xl mx-auto mb-10 text-black/70">
-            Шинэ ажлын зар үүсгэж, тохирох ажил хайгчдыг олоорой
-          </p>
-
-          <Link
-            href="/createJob"
-            className="px-8 py-4 rounded-xl border border-black font-medium hover:bg-black hover:text-white transition"
-          >
-            Ажил нэмэх
-          </Link>
-
-          <Link
-            href="/requests"
-            className="px-8 py-4 rounded-xl border border-black font-medium hover:bg-black hover:text-white transition"
-          >
-            Хүсэлтүүд харах
-          </Link>
-        </div>
-      </section>
-
       {/* Features */}
       <section className="border-t border-black/10 py-20">
         <div className="max-w-7xl mx-auto px-6">
@@ -35,11 +11,17 @@ export default function EmployerHome() {
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Feature title="Ажил нэмэх" desc="Цагийн ажил шинээр үүсгэх" />
-            <Feature
-              title="Хүсэлтүүд харах"
-              desc="Ажил хайгчдын илгээсэн хүсэлтүүдийг удирдах"
-            />
+            <Link href="/createJob">
+              <Feature title="Ажил нэмэх" desc="Цагийн ажил шинээр үүсгэх" />
+            </Link>
+
+            <Link href="/requests">
+              <Feature
+                title="Хүсэлтүүд харах"
+                desc="Ажил хайгчдын илгээсэн хүсэлтүүдийг удирдах"
+              />
+            </Link>
+
             <Feature
               title="Үнэлгээ өгөх"
               desc="Ажил гүйцэтгэлийн дараа үнэлгээ өгөх"
