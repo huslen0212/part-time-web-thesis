@@ -99,3 +99,36 @@ export const getEmployerRequests = async (
     res.status(500).json({ message: 'Хүсэлтүүдийг авахад алдаа гарлаа' });
   }
 };
+
+export const getMyRequests = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  const user = req.user;
+
+  if (!user || user.role !== 'JOB_SEEKER') {
+    res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
+    return;
+  }
+
+  const requests = await prisma.request.findMany({
+    where: {
+      jobSeekerId: user.userId,
+    },
+    include: {
+      job: {
+        select: {
+          jobId: true,
+          title: true,
+          description: true,
+          location: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  res.json(requests);
+};
