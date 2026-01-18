@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Calendar, DollarSign, List, MapPin } from 'lucide-react';
 
@@ -29,63 +28,34 @@ export default function JobSeekerHome() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const res = await fetch(`${API_URL}/jobs`);
-        const data = await res.json();
-
-        if (!res.ok) {
-          setError(data.message || 'Ажил татаж чадсангүй');
-          return;
-        }
-
-        setJobs(data);
-      } catch {
-        setError('Сервертэй холбогдож чадсангүй');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJobs();
+    fetch(`${API_URL}/jobs`)
+      .then((res) => res.json())
+      .then((data) => setJobs(data))
+      .catch(() => setError('Сервертэй холбогдож чадсангүй'))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <>
-      <section className="border-b border-black/10">
-        <div className="max-w-7xl mx-auto px-6 py-20 text-center">
-          <h2 className="text-4xl font-bold mb-4">Цагийн ажил хайх</h2>
-          <p className="max-w-3xl mx-auto mb-8 text-black/70">
-            Өөрийн боломжит цагт тохирох ажлыг хурдан, хялбараар олоорой
+    <section>
+      <div className="max-w-7xl mx-auto px-6">
+        <h3 className="text-2xl font-semibold mb-8">Нээлттэй ажлууд</h3>
+
+        {loading && (
+          <p className="text-center text-black/60">Ачаалж байна...</p>
+        )}
+
+        {error && <p className="text-center text-red-500">{error}</p>}
+
+        {!loading && jobs.length === 0 && (
+          <p className="text-center text-black/60">
+            Одоогоор нээлттэй ажил байхгүй
           </p>
+        )}
 
-          <Link href="/calendar">
-            <Button variant="outline" size="lg">
-              Календарь харах
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <h3 className="text-2xl font-semibold mb-8">Нээлттэй ажлууд</h3>
-
-          {loading && (
-            <p className="text-center text-black/60">Ачаалж байна...</p>
-          )}
-
-          {error && <p className="text-center text-red-500">{error}</p>}
-
-          {!loading && jobs.length === 0 && (
-            <p className="text-center text-black/60">
-              Одоогоор нээлттэй ажил байхгүй
-            </p>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobs.map((job) => (
-              <Card key={job.jobId} className="border-black/10 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {jobs.map((job) => (
+            <Link key={job.jobId} href={`/jobs/${job.jobId}`} className="block">
+              <Card className="border-black/10 relative cursor-pointer hover:shadow-lg transition">
                 <CardHeader>
                   <CardTitle className="text-lg">{job.title}</CardTitle>
 
@@ -96,25 +66,22 @@ export default function JobSeekerHome() {
                 </CardHeader>
 
                 <CardContent className="space-y-4 pb-10">
-                  {/* ajiliin tailbar */}
+                  {/* тайлбар */}
                   <p className="text-sm text-black/70 line-clamp-3">
                     {job.description}
                   </p>
 
                   <div className="text-sm space-y-1">
-                    {/* ajiliin bairshil */}
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
                       <span className="font-medium">{job.location}</span>
                     </div>
 
-                    {/* ajiliin turul */}
                     <div className="flex items-center gap-2">
                       <List className="w-4 h-4" />
                       <span className="font-medium">{job.category}</span>
                     </div>
 
-                    {/* tsalin */}
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4" />
                       <span className="font-medium">
@@ -122,15 +89,23 @@ export default function JobSeekerHome() {
                       </span>
                     </div>
 
-                    {/* ehleh duusah tsag */}
-                    <div className="text-black/60 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(job.startTime).toLocaleString('mn-MN')} –{' '}
-                      {new Date(job.endTime).toLocaleString('mn-MN')}
+                    {/* эхлэх / дуусах */}
+                    <div className="flex items-start gap-2 text-black/60">
+                      <Calendar className="w-4 h-4 mt-1" />
+                      <div className="flex flex-col">
+                        <span>
+                          Эхлэх:{' '}
+                          {new Date(job.startTime).toLocaleString('mn-MN')}
+                        </span>
+                        <span>
+                          Дуусах:{' '}
+                          {new Date(job.endTime).toLocaleString('mn-MN')}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* niitelsen ognoo */}
+                  {/* нийтэлсэн огноо */}
                   <div className="absolute bottom-3 right-4 text-xs text-black/50 flex items-center gap-1">
                     🗓️
                     {new Date(job.createdAt).toLocaleString('mn-MN', {
@@ -141,20 +116,12 @@ export default function JobSeekerHome() {
                       minute: '2-digit',
                     })}
                   </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <Link href={`/jobs/${job.jobId}`} className="w-full">
-                      <Button variant="outline" className="w-full">
-                        Дэлгэрэнгүй
-                      </Button>
-                    </Link>
-                  </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            </Link>
+          ))}
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

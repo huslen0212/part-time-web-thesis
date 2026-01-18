@@ -124,6 +124,8 @@ export const getMyRequests = async (
           description: true,
           location: true,
           category: true,
+          startTime: true,
+          endTime: true,
         },
       },
     },
@@ -142,7 +144,7 @@ export const updateRequestStatus = async (
   try {
     const user = req.user;
     const { requestId } = req.params;
-    const { status } = req.body; // APPROVED | REJECTED
+    const { status } = req.body;
 
     if (!user || user.role !== 'EMPLOYER') {
       res.status(403).json({ message: 'Зөвхөн ажил олгогч' });

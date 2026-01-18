@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,18 +18,19 @@ type MyRequest = {
     title: string;
     location: string;
     category: string;
+    startTime: string;
+    endTime: string;
   };
 };
 
 export default function MyRequestsPage() {
-  const router = useRouter();
   const [requests, setRequests] = useState<MyRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      router.push('/login');
+      window.location.href = '/login';
       return;
     }
 
@@ -39,7 +40,7 @@ export default function MyRequestsPage() {
       .then((res) => res.json())
       .then((data) => setRequests(data))
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   const pending = requests.filter((r) => r.status === 'PENDING');
   const approved = requests.filter((r) => r.status === 'APPROVED');
@@ -59,8 +60,7 @@ export default function MyRequestsPage() {
           Миний илгээсэн хүсэлтүүд
         </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <Column title={`Нийт (${requests.length})`} items={requests} />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Column title={`Хүлээгдэж (${pending.length})`} items={pending} />
           <Column
             title={`Зөвшөөрсөн (${approved.length})`}
@@ -84,8 +84,6 @@ export default function MyRequestsPage() {
     </div>
   );
 }
-
-/* ================= COLUMN ================= */
 
 function Column({
   title,
@@ -112,28 +110,47 @@ function Column({
       {items.length === 0 && <p className="text-sm text-black/50">Хоосон</p>}
 
       {items.map((r) => (
-        <Card key={r.requestId} className={border}>
-          <CardHeader>
-            <CardTitle className="text-sm">{r.job.title}</CardTitle>
-          </CardHeader>
+        <Link key={r.requestId} href={`/jobs/${r.job.jobId}`} className="block">
+          <Card
+            className={`${border} cursor-pointer hover:shadow-md transition`}
+          >
+            <CardHeader>
+              <CardTitle className="text-sm">{r.job.title}</CardTitle>
+            </CardHeader>
 
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-black/60">
-              <MapPin className="w-4 h-4" />
-              {r.job.location}
-            </div>
+            <CardContent className="space-y-2 text-sm">
+              {/* Location */}
+              <div className="flex items-center gap-2 text-black/60">
+                <MapPin className="w-4 h-4" />
+                {r.job.location}
+              </div>
 
-            <div className="flex items-center gap-2 text-black/60">
-              <List className="w-4 h-4" />
-              {r.job.category}
-            </div>
+              {/* Category */}
+              <div className="flex items-center gap-2 text-black/60">
+                <List className="w-4 h-4" />
+                {r.job.category}
+              </div>
 
-            <div className="flex items-center gap-2 text-xs text-black/50">
-              <Calendar className="w-4 h-4" />
-              {new Date(r.createdAt).toLocaleString('mn-MN')}
-            </div>
-          </CardContent>
-        </Card>
+              {/* Sent time */}
+              <div className="flex items-center gap-2 text-xs text-black/50">
+                <Calendar className="w-4 h-4" />
+                Илгээсэн: {new Date(r.createdAt).toLocaleString('mn-MN')}
+              </div>
+
+              {/* Start - End time */}
+              <div className="flex items-start gap-2 text-black/60">
+                <div className="flex flex-col">
+                  <span>
+                    Эхлэх: {new Date(r.job.startTime).toLocaleString('mn-MN')}
+                  </span>
+                  <span>
+                    Дуусах: {new Date(r.job.endTime).toLocaleString('mn-MN')}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       ))}
     </div>
   );
