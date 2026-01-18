@@ -5,10 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User, Phone, Calendar } from 'lucide-react';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 const API_URL = 'http://localhost:3001';
-
-/* ================= TYPES ================= */
 
 type EmployerRequest = {
   requestId: number;
@@ -25,17 +30,15 @@ type EmployerRequest = {
   };
 };
 
-/* ================= PAGE ================= */
-
 export default function EmployerHome() {
   const router = useRouter();
 
   const [pending, setPending] = useState<EmployerRequest[]>([]);
   const [approved, setApproved] = useState<EmployerRequest[]>([]);
   const [rejected, setRejected] = useState<EmployerRequest[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<number | 'ALL'>('ALL');
   const [loading, setLoading] = useState(true);
 
-  /* ===== Fetch requests ===== */
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -60,7 +63,6 @@ export default function EmployerHome() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  /* ===== Update status ===== */
   const updateStatus = async (
     request: EmployerRequest,
     status: 'APPROVED' | 'REJECTED',
@@ -77,46 +79,71 @@ export default function EmployerHome() {
       body: JSON.stringify({ status }),
     });
 
-    // 🔴 Pending-ээс устгана
     setPending((prev) => prev.filter((r) => r.requestId !== request.requestId));
 
-    // 🟢 Шинэ колонк руу нэмнэ
     const updated = { ...request, status };
 
-    if (status === 'APPROVED') {
-      setApproved((prev) => [updated, ...prev]);
-    } else {
-      setRejected((prev) => [updated, ...prev]);
-    }
+    status === 'APPROVED'
+      ? setApproved((prev) => [updated, ...prev])
+      : setRejected((prev) => [updated, ...prev]);
   };
 
-  if (loading) {
-    return <p className="text-center py-20">Ачаалж байна...</p>;
-  }
+  const jobs = Array.from(
+    new Map(
+      [...pending, ...approved, ...rejected].map((r) => [r.job.jobId, r.job]),
+    ).values(),
+  );
+
+  const filterByJob = (items: EmployerRequest[]) =>
+    selectedJobId === 'ALL'
+      ? items
+      : items.filter((r) => r.job.jobId === selectedJobId);
+
+  if (loading) return <p className="text-center py-20">Ачаалж байна...</p>;
 
   return (
     <section className="py-16">
-      <div className="max-w-7xl mx-auto px-6">
-        <h2 className="text-2xl font-semibold mb-10 text-center">
+      <div className="max-w-7xl mx-auto px-6 space-y-8">
+        <h2 className="text-2xl font-semibold text-center">
           Ажил олгогчийн хүсэлтийн самбар
         </h2>
 
+        {/* ===== Job filter ===== */}
+        <div className="max-w-sm mx-auto">
+          <Select
+            value={String(selectedJobId)}
+            onValueChange={(v) =>
+              setSelectedJobId(v === 'ALL' ? 'ALL' : Number(v))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Ажил сонгох" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Бүх ажлууд</SelectItem>
+              {jobs.map((job) => (
+                <SelectItem key={job.jobId} value={String(job.jobId)}>
+                  {job.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Column
-            title={`Бүх хүсэлтүүд (${pending.length})`}
-            items={pending}
+            title="Хүлээгдэж буй"
+            items={filterByJob(pending)}
             onAction={updateStatus}
           />
-
           <Column
-            title={`Зөвшөөрсөн (${approved.length})`}
-            items={approved}
+            title="Зөвшөөрсөн"
+            items={filterByJob(approved)}
             highlight="green"
           />
-
           <Column
-            title={`Татгалзсан (${rejected.length})`}
-            items={rejected}
+            title="Татгалзсан"
+            items={filterByJob(rejected)}
             highlight="red"
           />
         </div>
@@ -124,8 +151,6 @@ export default function EmployerHome() {
     </section>
   );
 }
-
-/* ================= COLUMN ================= */
 
 function Column({
   title,
@@ -143,7 +168,23 @@ function Column({
 }) {
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-lg">{title}</h3>
+      {/* ===== TITLE + COUNT ===== */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-lg">{title}</h3>
+
+        <span
+          className={`min-w-[28px] text-center rounded-full px-2 py-0.5 text-xs font-semibold
+            ${
+              highlight === 'green'
+                ? 'bg-green-100 text-green-700'
+                : highlight === 'red'
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-yellow-100 text-yellow-700'
+            }`}
+        >
+          {items.length}
+        </span>
+      </div>
 
       {items.length === 0 && (
         <p className="text-sm text-black/50">Хоосон байна</p>
