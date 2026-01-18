@@ -8,6 +8,8 @@ import { User, Phone, Calendar } from 'lucide-react';
 
 const API_URL = 'http://localhost:3001';
 
+/* ================= TYPES ================= */
+
 type EmployerRequest = {
   requestId: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -23,12 +25,17 @@ type EmployerRequest = {
   };
 };
 
+/* ================= PAGE ================= */
+
 export default function EmployerHome() {
   const router = useRouter();
-  const [requests, setRequests] = useState<EmployerRequest[]>([]);
+
+  const [pending, setPending] = useState<EmployerRequest[]>([]);
+  const [approved, setApproved] = useState<EmployerRequest[]>([]);
+  const [rejected, setRejected] = useState<EmployerRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ===== Fetch + sort (newest first) ===== */
+  /* ===== Fetch requests ===== */
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -37,30 +44,31 @@ export default function EmployerHome() {
     }
 
     fetch(`${API_URL}/requests/employer`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
-      .then((data: EmployerRequest[]) =>
-        setRequests(
-          data.sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          ),
-        ),
-      )
+      .then((data: EmployerRequest[]) => {
+        const sorted = data.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+
+        setPending(sorted.filter((r) => r.status === 'PENDING'));
+        setApproved(sorted.filter((r) => r.status === 'APPROVED'));
+        setRejected(sorted.filter((r) => r.status === 'REJECTED'));
+      })
       .finally(() => setLoading(false));
   }, [router]);
 
+  /* ===== Update status ===== */
   const updateStatus = async (
-    requestId: number,
+    request: EmployerRequest,
     status: 'APPROVED' | 'REJECTED',
   ) => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    await fetch(`${API_URL}/requests/${requestId}`, {
+    await fetch(`${API_URL}/requests/${request.requestId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -69,13 +77,18 @@ export default function EmployerHome() {
       body: JSON.stringify({ status }),
     });
 
-    setRequests((prev) =>
-      prev.map((r) => (r.requestId === requestId ? { ...r, status } : r)),
-    );
-  };
+    // 🔴 Pending-ээс устгана
+    setPending((prev) => prev.filter((r) => r.requestId !== request.requestId));
 
-  const approved = requests.filter((r) => r.status === 'APPROVED');
-  const rejected = requests.filter((r) => r.status === 'REJECTED');
+    // 🟢 Шинэ колонк руу нэмнэ
+    const updated = { ...request, status };
+
+    if (status === 'APPROVED') {
+      setApproved((prev) => [updated, ...prev]);
+    } else {
+      setRejected((prev) => [updated, ...prev]);
+    }
+  };
 
   if (loading) {
     return <p className="text-center py-20">Ачаалж байна...</p>;
@@ -90,8 +103,8 @@ export default function EmployerHome() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Column
-            title={`Бүх хүсэлтүүд (${requests.length})`}
-            items={requests}
+            title={`Бүх хүсэлтүүд (${pending.length})`}
+            items={pending}
             onAction={updateStatus}
           />
 
@@ -112,6 +125,8 @@ export default function EmployerHome() {
   );
 }
 
+/* ================= COLUMN ================= */
+
 function Column({
   title,
   items,
@@ -121,7 +136,10 @@ function Column({
   title: string;
   items: EmployerRequest[];
   highlight?: 'green' | 'red';
-  onAction?: (id: number, status: 'APPROVED' | 'REJECTED') => void;
+  onAction?: (
+    request: EmployerRequest,
+    status: 'APPROVED' | 'REJECTED',
+  ) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -144,40 +162,31 @@ function Column({
         >
           <CardHeader className="space-y-1">
             <CardTitle className="text-sm">{r.job.title}</CardTitle>
-
-            {/* ===== CREATED AT ===== */}
             <p className="text-xs text-black/50 flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              Ирсэн: {new Date(r.createdAt).toLocaleString('mn-MN')}
+              {new Date(r.createdAt).toLocaleString('mn-MN')}
             </p>
           </CardHeader>
 
           <CardContent className="space-y-3 text-sm">
-            {/* ===== DESCRIPTION ===== */}
-            {r.job.description ? (
-              <p className="text-black/70">{r.job.description}</p>
-            ) : (
-              <p className="italic text-black/40">Ажлын тайлбар оруулаагүй</p>
-            )}
+            <p className="text-black/70">{r.job.description}</p>
 
-            {/* ===== JOB SEEKER ===== */}
             <div className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              <span>{r.jobSeeker.userName || 'Нэргүй'}</span>
+              {r.jobSeeker.userName || 'Нэргүй'}
             </div>
 
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
-              <span>{r.jobSeeker.phoneNumber || '-'}</span>
+              {r.jobSeeker.phoneNumber || '-'}
             </div>
 
-            {/* ===== ACTIONS ===== */}
             {r.status === 'PENDING' && onAction && (
               <div className="flex gap-2 pt-2">
                 <Button
                   size="sm"
                   className="flex-1 bg-green-600 hover:bg-green-700"
-                  onClick={() => onAction(r.requestId, 'APPROVED')}
+                  onClick={() => onAction(r, 'APPROVED')}
                 >
                   Зөвшөөрөх
                 </Button>
@@ -186,7 +195,7 @@ function Column({
                   size="sm"
                   variant="destructive"
                   className="flex-1"
-                  onClick={() => onAction(r.requestId, 'REJECTED')}
+                  onClick={() => onAction(r, 'REJECTED')}
                 >
                   Татгалзах
                 </Button>
