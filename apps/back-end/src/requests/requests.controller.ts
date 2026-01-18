@@ -133,3 +133,48 @@ export const getMyRequests = async (
 
   res.json(requests);
 };
+
+export const updateRequestStatus = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const user = req.user;
+    const { requestId } = req.params;
+    const { status } = req.body; // APPROVED | REJECTED
+
+    if (!user || user.role !== 'EMPLOYER') {
+      res.status(403).json({ message: 'Зөвхөн ажил олгогч' });
+      return;
+    }
+
+    if (!['APPROVED', 'REJECTED'].includes(status)) {
+      res.status(400).json({ message: 'Буруу статус' });
+      return;
+    }
+
+    const request = await prisma.request.findFirst({
+      where: {
+        requestId: Number(requestId),
+        job: {
+          employerId: user.userId,
+        },
+      },
+    });
+
+    if (!request) {
+      res.status(404).json({ message: 'Хүсэлт олдсонгүй' });
+      return;
+    }
+
+    const updated = await prisma.request.update({
+      where: { requestId: Number(requestId) },
+      data: { status },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Статус өөрчлөхөд алдаа гарлаа' });
+  }
+};
