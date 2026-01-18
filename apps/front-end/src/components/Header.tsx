@@ -77,6 +77,12 @@ export default function Header() {
             </Link>
           )}
 
+          {activeRole === 'JOB_SEEKER' && (
+            <Link href="/my-requests">
+              <Button variant="outline">Миний хүсэлтүүд</Button>
+            </Link>
+          )}
+
           {activeRole === 'EMPLOYER' && (
             <Link href="/createJob" className="text-sm hover:underline">
               Ажил нэмэх

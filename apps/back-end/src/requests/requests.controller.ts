@@ -123,6 +123,7 @@ export const getMyRequests = async (
           title: true,
           description: true,
           location: true,
+          category: true,
         },
       },
     },

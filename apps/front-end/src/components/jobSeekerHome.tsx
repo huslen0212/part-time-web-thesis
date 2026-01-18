@@ -148,8 +148,6 @@ export default function JobSeekerHome() {
                         Дэлгэрэнгүй
                       </Button>
                     </Link>
-
-                    <Button className="w-full">Хүсэлт илгээх</Button>
                   </div>
                 </CardContent>
               </Card>
