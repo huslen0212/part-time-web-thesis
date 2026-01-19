@@ -108,3 +108,35 @@ export const getJobById = async (req: Request, res: Response) => {
   }
 };
 
+// GET /jobs/my
+export const getMyJobs = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'EMPLOYER') {
+      return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
+    }
+
+    const jobs = await prisma.job.findMany({
+      where: {
+        employerId: req.user.userId,
+      },
+      select: {
+        jobId: true,
+        title: true,
+        description: true,
+        location: true,
+        category: true, // ✅ ЗААВАЛ НЭМНЭ
+        salary: true,
+        startTime: true,
+        endTime: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return res.json(jobs);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
