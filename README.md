@@ -89,3 +89,7 @@ Studio ажиллуулах npx prisma studio
 npx prisma db seed
 
 npx prisma migrate reset
+
+npx nx run @part-time-web/front-end:dev
+
+npx nx run @part-time-web/back-end:serve --configuration=development
