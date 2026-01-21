@@ -15,6 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Calendar, MapPin, List } from 'lucide-react';
+import ApprovedJobsCalendar from '@/components/ApprovedJobsCalendar';
 
 const API_URL = 'http://localhost:3001';
 
@@ -115,7 +116,7 @@ export default function ProfilePage() {
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      <main className="flex-1 max-w-screen-2xl mx-auto px-6 py-10">
+      <main className="flex-1 max-w-screen-2xl mx-auto px-6 py-10 space-y-16">
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-10">
           <Card className="self-start h-fit">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -210,6 +211,18 @@ export default function ProfilePage() {
               />
             </div>
           </section>
+
+          {approved.length > 0 && (
+            <section className="col-span-1 lg:col-span-2 w-3/4 mx-auto">
+              <div className="-mx-6 px-6">
+                <h2 className="text-2xl font-semibold mb-6">
+                  Миний зөвшөөрөгдсөн ажлууд
+                </h2>
+
+                <ApprovedJobsCalendar items={approved} />
+              </div>
+            </section>
+          )}
         </div>
       </main>
 
