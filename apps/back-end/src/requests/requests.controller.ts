@@ -163,6 +163,9 @@ export const updateRequestStatus = async (
           employerId: user.userId,
         },
       },
+      include: {
+        job: true,
+      },
     });
 
     if (!request) {
@@ -170,12 +173,40 @@ export const updateRequestStatus = async (
       return;
     }
 
-    const updated = await prisma.request.update({
-      where: { requestId: Number(requestId) },
-      data: { status },
+    const result = await prisma.$transaction(async (tx) => {
+      const approvedRequest = await tx.request.update({
+        where: { requestId: request.requestId },
+        data: { status },
+      });
+
+      if (status === 'APPROVED') {
+        const start = request.job.startTime;
+        const end = request.job.endTime;
+
+        await tx.request.updateMany({
+          where: {
+            jobSeekerId: request.jobSeekerId,
+            status: 'PENDING',
+            requestId: {
+              not: request.requestId,
+            },
+            job: {
+              AND: [
+                { startTime: { lte: end } },
+                { endTime: { gte: start } },
+              ],
+            },
+          },
+          data: {
+            status: 'CANCEL',
+          },
+        });
+      }
+
+      return approvedRequest;
     });
 
-    res.json(updated);
+    res.json(result);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Статус өөрчлөхөд алдаа гарлаа' });
