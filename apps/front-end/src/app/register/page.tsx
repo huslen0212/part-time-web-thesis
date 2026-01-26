@@ -78,7 +78,7 @@ export default function RegisterPage() {
     }
 
     if (role === 'EMPLOYER') {
-      if (!userName) {
+      if (!employerName) {
         toast.warning('Нэрээ оруулна уу');
         return;
       }
