@@ -189,6 +189,7 @@ export default function CreateJobPage() {
                     <SelectItem value="IT">IT</SelectItem>
                     <SelectItem value="Оффис">Оффис</SelectItem>
                     <SelectItem value="Хүргэлт">Хүргэлт</SelectItem>
+                    <SelectItem value="Барилга">Барилга</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
