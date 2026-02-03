@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import JobSeekerHome from '@/components/JobSeekerHome';
+import JobSeekerHome from '@/components/jobSeekerHome';
 import EmployerHome from '@/components/EmployerHome';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';

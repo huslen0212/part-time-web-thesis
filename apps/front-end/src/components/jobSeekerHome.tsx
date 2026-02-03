@@ -66,9 +66,7 @@ export default function JobSeekerHome() {
 
   const filteredJobs = jobs.filter((job) => {
     if (searchType === 'title' && searchValue.trim()) {
-      return job.title
-        .toLowerCase()
-        .includes(searchValue.toLowerCase());
+      return job.title.toLowerCase().includes(searchValue.toLowerCase());
     }
 
     if (searchType === 'category') {
@@ -89,24 +87,22 @@ export default function JobSeekerHome() {
   return (
     <section>
       <div className="max-w-7xl mx-auto px-6">
-
         {/* ================= HERO ================= */}
-        <div className="relative mb-16 rounded-2xl overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600">
-          <div className="px-6 py-20 text-center text-white">
+        <div className="relative mb-16 rounded-2xl overflow-hidden bg-white">
+          <div className="px-6 py-20 text-center text-black">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">
               Та хүссэн ажлаа хайгаарай
             </h1>
 
-            <p className="text-white/90 max-w-2xl mx-auto mb-10">
+            <p className="text-black/50 max-w-2xl mx-auto mb-10">
               Өөрт тохирсон ажлыг нэр, төрөл, цалингаар шүүнэ.
             </p>
 
             {/* ================= SEARCH ================= */}
+            {/* ================= SEARCH ================= */}
             <div className="flex flex-col items-center gap-4">
-
               {/* search input */}
               <div className="flex flex-col md:flex-row gap-3 w-full justify-center">
-
                 {/* TITLE */}
                 {searchType === 'title' && (
                   <input
@@ -114,7 +110,11 @@ export default function JobSeekerHome() {
                     placeholder="Ажлын нэрээр хайх"
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className="w-full md:w-80 px-4 py-3 rounded-lg text-black text-sm outline-none"
+                    className="w-full md:w-80 px-4 py-3 rounded-lg
+                   text-black text-sm outline-none
+                   bg-white
+                   border border-black
+                   focus:border-black focus:ring-0"
                   />
                 )}
 
@@ -124,7 +124,12 @@ export default function JobSeekerHome() {
                     value={selectedCategory}
                     onValueChange={setSelectedCategory}
                   >
-                    <SelectTrigger className="w-full md:w-80 bg-white text-black">
+                    <SelectTrigger
+                      className="w-full md:w-80 px-4 py-3 rounded-lg
+                     bg-white text-black text-sm
+                     border border-black
+                     focus:border-black focus:ring-0"
+                    >
                       <SelectValue placeholder="Ажлын төрөл" />
                     </SelectTrigger>
                     <SelectContent>
@@ -149,7 +154,11 @@ export default function JobSeekerHome() {
                       onChange={(e) =>
                         setSearchValue(e.target.value.replace(/\D/g, ''))
                       }
-                      className="w-full px-4 py-3 pr-10 rounded-lg text-black text-sm outline-none"
+                      className="w-full px-4 py-3 pr-10 rounded-lg
+                     text-black text-sm outline-none
+                     bg-white
+                     border border-black
+                     focus:border-black focus:ring-0"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-black/60">
                       ₮
@@ -165,11 +174,10 @@ export default function JobSeekerHome() {
                     setSearchType('title');
                     setSearchValue('');
                   }}
-                  className={`px-6 py-2 rounded-full text-sm ${
-                    searchType === 'title'
-                      ? 'bg-black text-white'
-                      : 'bg-white text-black'
-                  }`}
+                  className={`px-6 py-2 rounded-full text-sm border border-black
+        ${
+          searchType === 'title' ? 'bg-black text-white' : 'bg-white text-black'
+        }`}
                 >
                   Нэрээр
                 </button>
@@ -179,11 +187,12 @@ export default function JobSeekerHome() {
                     setSearchType('category');
                     setSelectedCategory('all');
                   }}
-                  className={`px-6 py-2 rounded-full text-sm ${
-                    searchType === 'category'
-                      ? 'bg-black text-white'
-                      : 'bg-white text-black'
-                  }`}
+                  className={`px-6 py-2 rounded-full text-sm border border-black
+        ${
+          searchType === 'category'
+            ? 'bg-black text-white'
+            : 'bg-white text-black'
+        }`}
                 >
                   Төрлөөр
                 </button>
@@ -193,11 +202,12 @@ export default function JobSeekerHome() {
                     setSearchType('salary');
                     setSearchValue('');
                   }}
-                  className={`px-6 py-2 rounded-full text-sm ${
-                    searchType === 'salary'
-                      ? 'bg-black text-white'
-                      : 'bg-white text-black'
-                  }`}
+                  className={`px-6 py-2 rounded-full text-sm border border-black
+        ${
+          searchType === 'salary'
+            ? 'bg-black text-white'
+            : 'bg-white text-black'
+        }`}
                 >
                   Цалингаар
                 </button>
