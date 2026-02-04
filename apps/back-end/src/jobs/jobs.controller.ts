@@ -162,7 +162,6 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Job ID буруу' });
     }
 
-    // ✅ ЗӨВХӨН TEMPLATE БАЙГАА ЭСЭХ
     const template = await prisma.job.findFirst({
       where: {
         jobId,
@@ -177,7 +176,6 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // ✅ TEMPLATE → FALSE
     await prisma.job.update({
       where: { jobId },
       data: {

@@ -27,8 +27,6 @@ import {
 
 const API_URL = 'http://localhost:3001';
 
-/* ================= TYPES ================= */
-
 type JwtPayload = {
   userId: number;
   role: 'JOB_SEEKER' | 'EMPLOYER';
@@ -46,8 +44,6 @@ type JobTemplate = {
   endTime: string;
 };
 
-/* ================= HELPERS ================= */
-
 function decodeToken(token: string): JwtPayload | null {
   try {
     return JSON.parse(atob(token.split('.')[1]));
@@ -56,13 +52,10 @@ function decodeToken(token: string): JwtPayload | null {
   }
 }
 
-/* ================= PAGE ================= */
-
 export default function CreateJobPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  /* ---- form ---- */
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -72,14 +65,13 @@ export default function CreateJobPage() {
   const [endTime, setEndTime] = useState('');
   const [createTemplate, setCreateTemplate] = useState(false);
 
-  /* ---- template ---- */
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<JobTemplate | null>(
     null,
   );
-
-  /* ================= LOAD ================= */
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -99,8 +91,6 @@ export default function CreateJobPage() {
       .catch(() => toast.error('Template ачаалж чадсангүй'));
   }, [router]);
 
-  /* ================= APPLY TEMPLATE ================= */
-
   const applyTemplate = (job: JobTemplate) => {
     setTitle(job.title);
     setDescription(job.description);
@@ -113,13 +103,16 @@ export default function CreateJobPage() {
     setOpenDialog(false);
   };
 
-  /* ================= DELETE TEMPLATE ================= */
+  const openDeleteConfirm = (jobId: number) => {
+    setDeleteTargetId(jobId);
+    setDeleteConfirmOpen(true);
+  };
 
-  const deleteTemplate = async (jobId: number) => {
-    if (!confirm('Энэ загварыг устгах уу?')) return;
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
 
     try {
-      const res = await fetch(`${API_URL}/jobs/template/${jobId}`, {
+      const res = await fetch(`${API_URL}/jobs/template/${deleteTargetId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -129,14 +122,14 @@ export default function CreateJobPage() {
       if (!res.ok) throw new Error();
 
       toast.success('Template устгагдлаа');
-      setTemplates((prev) => prev.filter((t) => t.jobId !== jobId));
+      setTemplates((prev) => prev.filter((t) => t.jobId !== deleteTargetId));
       setSelectedTemplate(null);
+      setDeleteConfirmOpen(false);
+      setDeleteTargetId(null);
     } catch {
       toast.error('Template устгах үед алдаа гарлаа');
     }
   };
-
-  /* ================= SUBMIT ================= */
 
   const handleSubmit = async () => {
     if (
@@ -291,6 +284,35 @@ export default function CreateJobPage() {
         </div>
       </main>
 
+      {/* ===== DELETE CONFIRM DIALOG ===== */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Загварыг устгах уу?</DialogTitle>
+          </DialogHeader>
+
+          <p className="text-sm text-black/70">
+            "{templates.find((t) => t.jobId === deleteTargetId)?.title}"
+            загварыг устгахад итгэлтэй байна уу? Энэ үйлдэл буцаах боломжгүй.
+          </p>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteConfirmOpen(false);
+                setDeleteTargetId(null);
+              }}
+            >
+              Болих
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Устгах
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ===== TEMPLATE DIALOG ===== */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent className="max-w-4xl">
@@ -337,7 +359,7 @@ export default function CreateJobPage() {
                         className="flex-1 h-8"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteTemplate(t.jobId);
+                          openDeleteConfirm(t.jobId);
                         }}
                       >
                         Устгах
@@ -386,8 +408,6 @@ export default function CreateJobPage() {
     </div>
   );
 }
-
-/* ================= FIELD ================= */
 
 function Field({
   label,
