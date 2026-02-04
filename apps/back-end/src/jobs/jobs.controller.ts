@@ -17,9 +17,18 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       salary,
       startTime,
       endTime,
+      isTemplate, // ⭐ ЭНД АВНА
     } = req.body;
 
-    if (!title || !description || !location || !category || !salary || !startTime || !endTime) {
+    if (
+      !title ||
+      !description ||
+      !location ||
+      !category ||
+      !salary ||
+      !startTime ||
+      !endTime
+    ) {
       return res.status(400).json({ message: 'Мэдээлэл дутуу' });
     }
 
@@ -43,18 +52,17 @@ export const createJob = async (req: AuthRequest, res: Response) => {
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         employerId: req.user.userId,
+        isTemplate: Boolean(isTemplate),
       },
     });
 
-    return res.status(201).json({
-      message: 'Ажил амжилттай нэмэгдлээ',
-      job,
-    });
+    return res.status(201).json({ job });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 // GET /jobs
 export const getJobs = async (_req: Request, res: Response) => {
@@ -118,13 +126,14 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
     const jobs = await prisma.job.findMany({
       where: {
         employerId: req.user.userId,
+        isTemplate: true,
       },
       select: {
         jobId: true,
         title: true,
         description: true,
         location: true,
-        category: true, // ✅ ЗААВАЛ НЭМНЭ
+        category: true,
         salary: true,
         startTime: true,
         endTime: true,
@@ -135,6 +144,50 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
     });
 
     return res.json(jobs);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// PATCH /jobs/template/:id
+export const removeTemplate = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'EMPLOYER') {
+      return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
+    }
+
+    const jobId = Number(req.params.id);
+    if (isNaN(jobId)) {
+      return res.status(400).json({ message: 'Job ID буруу' });
+    }
+
+    // ✅ ЗӨВХӨН TEMPLATE БАЙГАА ЭСЭХ
+    const template = await prisma.job.findFirst({
+      where: {
+        jobId,
+        employerId: req.user.userId,
+        isTemplate: true,
+      },
+    });
+
+    if (!template) {
+      return res.status(404).json({
+        message: 'Template олдсонгүй',
+      });
+    }
+
+    // ✅ TEMPLATE → FALSE
+    await prisma.job.update({
+      where: { jobId },
+      data: {
+        isTemplate: false,
+      },
+    });
+
+    return res.json({
+      message: 'Template амжилттай устгагдлаа (soft)',
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });

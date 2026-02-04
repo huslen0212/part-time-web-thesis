@@ -27,19 +27,13 @@ import {
 
 const API_URL = 'http://localhost:3001';
 
+/* ================= TYPES ================= */
+
 type JwtPayload = {
   userId: number;
   role: 'JOB_SEEKER' | 'EMPLOYER';
   exp: number;
 };
-
-function decodeToken(token: string): JwtPayload | null {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch {
-    return null;
-  }
-}
 
 type JobTemplate = {
   jobId: number;
@@ -52,10 +46,23 @@ type JobTemplate = {
   endTime: string;
 };
 
+/* ================= HELPERS ================= */
+
+function decodeToken(token: string): JwtPayload | null {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
+
+/* ================= PAGE ================= */
+
 export default function CreateJobPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
+  /* ---- form ---- */
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -63,11 +70,16 @@ export default function CreateJobPage() {
   const [salary, setSalary] = useState<number | ''>('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [createTemplate, setCreateTemplate] = useState(false);
 
+  /* ---- template ---- */
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
-  const [activeTemplate, setActiveTemplate] = useState<JobTemplate | null>(
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<JobTemplate | null>(
     null,
   );
+
+  /* ================= LOAD ================= */
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -84,8 +96,10 @@ export default function CreateJobPage() {
     })
       .then((r) => r.json())
       .then(setTemplates)
-      .catch(() => toast.error('Template ажлууд ачаалж чадсангүй'));
+      .catch(() => toast.error('Template ачаалж чадсангүй'));
   }, [router]);
+
+  /* ================= APPLY TEMPLATE ================= */
 
   const applyTemplate = (job: JobTemplate) => {
     setTitle(job.title);
@@ -95,8 +109,34 @@ export default function CreateJobPage() {
     setSalary(job.salary);
     setStartTime(job.startTime);
     setEndTime(job.endTime);
-    setActiveTemplate(null);
+    setCreateTemplate(false);
+    setOpenDialog(false);
   };
+
+  /* ================= DELETE TEMPLATE ================= */
+
+  const deleteTemplate = async (jobId: number) => {
+    if (!confirm('Энэ загварыг устгах уу?')) return;
+
+    try {
+      const res = await fetch(`${API_URL}/jobs/template/${jobId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!res.ok) throw new Error();
+
+      toast.success('Template устгагдлаа');
+      setTemplates((prev) => prev.filter((t) => t.jobId !== jobId));
+      setSelectedTemplate(null);
+    } catch {
+      toast.error('Template устгах үед алдаа гарлаа');
+    }
+  };
+
+  /* ================= SUBMIT ================= */
 
   const handleSubmit = async () => {
     if (
@@ -129,27 +169,30 @@ export default function CreateJobPage() {
           salary: Number(salary),
           startTime,
           endTime,
+          isTemplate: createTemplate,
         }),
       });
 
       if (!res.ok) throw new Error();
 
-      toast.success('Ажил амжилттай нэмэгдлээ');
+      toast.success('Амжилттай хадгалагдлаа');
       router.push('/');
     } catch {
-      toast.error('Ажил нэмэхэд алдаа гарлаа');
+      toast.error('Алдаа гарлаа');
     } finally {
       setLoading(false);
     }
   };
+
+  /* ================= RENDER ================= */
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
       <main className="flex-1 max-w-screen-xl mx-auto px-6 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
-          {/* FORM */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-10">
+          {/* ===== FORM ===== */}
           <Card>
             <CardHeader>
               <CardTitle>Шинэ ажил нэмэх</CardTitle>
@@ -222,97 +265,120 @@ export default function CreateJobPage() {
                 </Field>
               </div>
 
-              <Button
-                className="w-full"
-                onClick={handleSubmit}
-                disabled={loading}
-              >
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={createTemplate}
+                  onChange={(e) => setCreateTemplate(e.target.checked)}
+                />
+                <Label>Энэ зараар template үүсгэх</Label>
+              </div>
+
+              <Button onClick={handleSubmit} disabled={loading}>
                 {loading ? 'Хадгалж байна...' : 'Ажил нэмэх'}
               </Button>
             </CardContent>
           </Card>
 
-          {/* TEMPLATE LIST */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-sm text-black/70">
-              Өмнөх ажлууд (Template)
-            </h3>
-
-            {templates.map((job) => (
-              <Card
-                key={job.jobId}
-                className="cursor-pointer hover:shadow-md transition"
-                onClick={() => setActiveTemplate(job)}
-              >
-                <CardContent className="p-4">
-                  <div className="font-medium text-sm">{job.title}</div>
-                  <div className="text-xs text-black/50">
-                    {job.category} · {job.location}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* ===== TEMPLATE BUTTON ===== */}
+          <Button
+            variant="outline"
+            className="h-fit"
+            onClick={() => setOpenDialog(true)}
+          >
+            Загвар харах
+          </Button>
         </div>
       </main>
 
-      {/* TEMPLATE DIALOG */}
-      <Dialog
-        open={!!activeTemplate}
-        onOpenChange={(o) => !o && setActiveTemplate(null)}
-      >
-        <DialogContent className="max-w-lg">
-          {activeTemplate && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{activeTemplate.title}</DialogTitle>
-              </DialogHeader>
+      {/* ===== TEMPLATE DIALOG ===== */}
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Өмнөх загварууд</DialogTitle>
+          </DialogHeader>
 
-              <div className="space-y-3 text-sm">
-                <p>
-                  <b>Байршил:</b> {activeTemplate.location}
-                </p>
-                <p>
-                  <b>Төрөл:</b> {activeTemplate.category}
-                </p>
-                <p>
-                  <b>Цалин:</b> {activeTemplate.salary.toLocaleString()} ₮
-                </p>
+          <div className="grid grid-cols-[280px_1fr] gap-6">
+            {/* LEFT */}
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-3 border-r">
+              {templates.map((t) => {
+                const active = selectedTemplate?.jobId === t.jobId;
 
-                <div>
-                  <b>Тайлбар:</b>
-                  <p className="mt-1 whitespace-pre-line text-black/80">
-                    {activeTemplate.description}
+                return (
+                  <div
+                    key={t.jobId}
+                    onClick={() => setSelectedTemplate(t)}
+                    className={`p-3 rounded border cursor-pointer transition
+                      ${
+                        active
+                          ? 'bg-blue-50 border-blue-400 shadow-sm'
+                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="text-sm font-medium line-clamp-1">
+                      {t.title}
+                    </div>
+
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          applyTemplate(t);
+                        }}
+                      >
+                        Ашиглах
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="flex-1 h-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTemplate(t.jobId);
+                        }}
+                      >
+                        Устгах
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* RIGHT */}
+            <div className="space-y-3 text-sm">
+              {selectedTemplate ? (
+                <>
+                  <h4 className="font-semibold text-base">
+                    {selectedTemplate.title}
+                  </h4>
+                  <p>
+                    <b>Байршил:</b> {selectedTemplate.location}
                   </p>
-                </div>
+                  <p>
+                    <b>Төрөл:</b> {selectedTemplate.category}
+                  </p>
+                  <p>
+                    <b>Цалин:</b> {selectedTemplate.salary.toLocaleString()} ₮
+                  </p>
+                  <p className="whitespace-pre-line text-black/80">
+                    {selectedTemplate.description}
+                  </p>
+                </>
+              ) : (
+                <p className="text-black/50">Зүүн талаас загвар сонгоно уу</p>
+              )}
+            </div>
+          </div>
 
-                <p>
-                  <b>Төрөл:</b> {activeTemplate.category || 'Тодорхойгүй'}
-                </p>
-
-                <p>
-                  <b>Эхлэх:</b>{' '}
-                  {new Date(activeTemplate.startTime).toLocaleString('mn-MN')}
-                </p>
-                <p>
-                  <b>Дуусах:</b>{' '}
-                  {new Date(activeTemplate.endTime).toLocaleString('mn-MN')}
-                </p>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setActiveTemplate(null)}
-                >
-                  Болих
-                </Button>
-                <Button onClick={() => applyTemplate(activeTemplate)}>
-                  Загвар ашиглах
-                </Button>
-              </DialogFooter>
-            </>
-          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDialog(false)}>
+              Хаах
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -321,7 +387,8 @@ export default function CreateJobPage() {
   );
 }
 
-/* ---------- Helper ---------- */
+/* ================= FIELD ================= */
+
 function Field({
   label,
   children,

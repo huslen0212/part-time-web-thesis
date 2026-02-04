@@ -72,6 +72,7 @@ model Job {
   startTime   DateTime
   endTime     DateTime
   category    String
+  isTemplate  Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   employerId Int
