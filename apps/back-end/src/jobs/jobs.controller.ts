@@ -195,3 +195,45 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const getNearbyJobs = async (req: Request, res: Response) => {
+  try {
+    const latParam = req.query.lat as string;
+    const lngParam = req.query.lng as string;
+    const radiusParam = req.query.radius as string;
+
+    const lat = parseFloat(latParam);
+    const lng = parseFloat(lngParam);
+    const radius = radiusParam ? parseFloat(radiusParam) : 500;
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ message: 'lat/lng required' });
+    }
+
+    const jobs = await prisma.$queryRawUnsafe(`
+      SELECT *
+      FROM (
+        SELECT *,
+          (
+            6371000 * acos(
+              cos(radians(${lat}))
+              * cos(radians("latitude"))
+              * cos(radians("longitude") - radians(${lng}))
+              + sin(radians(${lat}))
+              * sin(radians("latitude"))
+            )
+          ) AS distance
+        FROM "Job"
+        WHERE "latitude" IS NOT NULL
+        AND "longitude" IS NOT NULL
+      ) AS sub
+      WHERE distance <= ${radius}
+      ORDER BY distance ASC
+    `);
+
+    return res.json(jobs);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
