@@ -68,6 +68,8 @@ model Job {
   title       String
   description String
   location    String
+  latitude    Float?
+  longitude   Float?
   salary      Int
   startTime   DateTime
   endTime     DateTime

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import GoogleMapComponent from '@/components/GoogleMap';
 import {
   Select,
   SelectContent,
@@ -73,6 +74,9 @@ export default function CreateJobPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return router.push('/login');
@@ -101,6 +105,12 @@ export default function CreateJobPage() {
     setEndTime(job.endTime);
     setCreateTemplate(false);
     setOpenDialog(false);
+  };
+
+  const handleLocationSelect = (lat: number, lng: number, address: string) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    setLocation(address);
   };
 
   const openDeleteConfirm = (jobId: number) => {
@@ -163,6 +173,8 @@ export default function CreateJobPage() {
           startTime,
           endTime,
           isTemplate: createTemplate,
+          latitude,
+          longitude,
         }),
       });
 
@@ -212,6 +224,10 @@ export default function CreateJobPage() {
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
+              </Field>
+
+              <Field label="Газрын зураг дээр сонгох">
+                <GoogleMapComponent onSelectLocation={handleLocationSelect} />
               </Field>
 
               <Field label="Төрөл">

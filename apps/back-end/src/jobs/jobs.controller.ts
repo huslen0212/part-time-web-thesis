@@ -17,7 +17,9 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       salary,
       startTime,
       endTime,
-      isTemplate, // ⭐ ЭНД АВНА
+      isTemplate,
+      latitude,
+      longitude, 
     } = req.body;
 
     if (
@@ -53,6 +55,8 @@ export const createJob = async (req: AuthRequest, res: Response) => {
         endTime: new Date(endTime),
         employerId: req.user.userId,
         isTemplate: Boolean(isTemplate),
+        latitude: latitude ? Number(latitude) : null,
+        longitude: longitude ? Number(longitude) : null
       },
     });
 
