@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 type Props = {
   onSelectLocation: (lat: number, lng: number, address: string) => void;
@@ -22,6 +22,11 @@ export default function GoogleMapComponent({ onSelectLocation }: Props) {
   const [markerPosition, setMarkerPosition] =
     useState<google.maps.LatLngLiteral | null>(null);
 
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+  });
+
   const handleMapClick = useCallback(
     (event: google.maps.MapMouseEvent) => {
       if (!event.latLng) return;
@@ -38,7 +43,6 @@ export default function GoogleMapComponent({ onSelectLocation }: Props) {
           const address = results[0].formatted_address;
           onSelectLocation(lat, lng, address);
         } else {
-          console.error('Geocoder failed:', status);
           onSelectLocation(lat, lng, '');
         }
       });
@@ -46,24 +50,16 @@ export default function GoogleMapComponent({ onSelectLocation }: Props) {
     [onSelectLocation],
   );
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable is not defined',
-    );
-  }
+  if (!isLoaded) return null;
 
   return (
-    <LoadScript googleMapsApiKey={apiKey}>
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={markerPosition || defaultCenter}
-        zoom={13}
-        onClick={handleMapClick}
-      >
-        {markerPosition && <Marker position={markerPosition} />}
-      </GoogleMap>
-    </LoadScript>
+    <GoogleMap
+      mapContainerStyle={containerStyle}
+      center={markerPosition || defaultCenter}
+      zoom={13}
+      onClick={handleMapClick}
+    >
+      {markerPosition && <Marker position={markerPosition} />}
+    </GoogleMap>
   );
 }
