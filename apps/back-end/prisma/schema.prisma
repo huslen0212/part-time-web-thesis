@@ -90,6 +90,8 @@ model Request {
   status      RequestStatus @default(PENDING)
   createdAt   DateTime      @default(now())
 
+  workerCount Int @default(1)
+
   jobSeekerId Int
   jobId       Int
 

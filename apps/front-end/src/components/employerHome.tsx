@@ -19,6 +19,7 @@ type EmployerRequest = {
   requestId: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
+  workerCount: number;
   job: {
     jobId: number;
     title: string;
@@ -214,7 +215,7 @@ function Column({
 
             <div className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              {r.jobSeeker.userName || 'Нэргүй'}
+              {r.jobSeeker.userName || 'Нэргүй'} ({r.workerCount} хүн)
             </div>
 
             <div className="flex items-center gap-2">

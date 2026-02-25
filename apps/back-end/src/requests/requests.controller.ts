@@ -8,7 +8,7 @@ export const createRequest = async (
 ): Promise<void> => {
   try {
     const user = req.user;
-    const { jobId } = req.body;
+    const { jobId, workerCount = 1 } = req.body;
 
     if (!user) {
       res.status(401).json({ message: 'Нэвтрээгүй байна' });
@@ -44,6 +44,7 @@ export const createRequest = async (
       data: {
         jobSeekerId,
         jobId: Number(jobId),
+        workerCount: Number(workerCount),
       },
     });
 

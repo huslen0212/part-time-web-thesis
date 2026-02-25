@@ -5,7 +5,15 @@ import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   Building2,
@@ -46,7 +54,14 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const sendRequest = async () => {
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [selectedWorkers, setSelectedWorkers] = useState(1);
+
+  const handleSendRequest = async (workerCount: number) => {
+    const clamped = Math.max(
+      1,
+      Math.min(workerCount, job?.numberOfWorker || 1),
+    );
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/login');
@@ -60,7 +75,7 @@ export default function JobDetailPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ jobId }),
+        body: JSON.stringify({ jobId, workerCount: clamped }),
       });
 
       const data = await res.json();
@@ -71,8 +86,17 @@ export default function JobDetailPage() {
       }
 
       toast.success('Хүсэлт амжилттай илгээгдлээ');
+      setRequestDialogOpen(false);
     } catch {
       toast.error('Сервертэй холбогдож чадсангүй');
+    }
+  };
+
+  const openRequestDialog = () => {
+    if (job && job.numberOfWorker > 1) {
+      setRequestDialogOpen(true);
+    } else {
+      handleSendRequest(1);
     }
   };
 
@@ -168,7 +192,7 @@ export default function JobDetailPage() {
                   <Button variant="outline" onClick={() => router.back()}>
                     Буцах
                   </Button>
-                  <Button onClick={sendRequest}>Хүсэлт илгээх</Button>
+                  <Button onClick={openRequestDialog}>Хүсэлт илгээх</Button>
                 </div>
               </CardContent>
             </Card>
@@ -189,6 +213,45 @@ export default function JobDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* REQUEST DIALOG */}
+      <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Хүсэлт илгээх</DialogTitle>
+          </DialogHeader>
+
+          <p className="text-sm text-black/70">
+            Хэдэн хүний хүсэлт илгээх вэ? (1-{job?.numberOfWorker || 1})
+          </p>
+
+          <Input
+            type="number"
+            min={1}
+            max={job?.numberOfWorker || 1}
+            value={selectedWorkers}
+            onChange={(e) => {
+              const val = Number(e.target.value) || 1;
+              setSelectedWorkers(
+                Math.max(1, Math.min(val, job?.numberOfWorker || 1)),
+              );
+            }}
+            placeholder="Тоо оруулна уу"
+          />
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRequestDialogOpen(false)}
+            >
+              Болих
+            </Button>
+            <Button onClick={() => handleSendRequest(selectedWorkers)}>
+              Илгээх
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>
