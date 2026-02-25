@@ -58,7 +58,7 @@ export default function Header() {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    router.push('/');
+    window.location.href = '/';
   };
 
   const activeRole = overrideRole ?? user?.role;

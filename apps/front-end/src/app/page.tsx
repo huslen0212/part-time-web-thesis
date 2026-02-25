@@ -21,7 +21,7 @@ function decodeToken(token: string): JwtPayload | null {
   }
 }
 
-export default function Index() {
+export default function HomePage() {
   const [user, setUser] = useState<JwtPayload | null>(null);
 
   useEffect(() => {
