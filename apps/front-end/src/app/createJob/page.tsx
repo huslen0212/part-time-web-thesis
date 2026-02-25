@@ -43,6 +43,7 @@ type JobTemplate = {
   salary: number;
   startTime: string;
   endTime: string;
+  numberOfWorker: number;
 };
 
 function decodeToken(token: string): JwtPayload | null {
@@ -65,6 +66,7 @@ export default function CreateJobPage() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [createTemplate, setCreateTemplate] = useState(false);
+  const [numberOfWorker, setNumberOfWorker] = useState<number | ''>('');
 
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
@@ -105,6 +107,7 @@ export default function CreateJobPage() {
     setEndTime(job.endTime);
     setCreateTemplate(false);
     setOpenDialog(false);
+    setNumberOfWorker(job.numberOfWorker ?? 1);
   };
 
   const handleLocationSelect = (lat: number, lng: number, address: string) => {
@@ -148,6 +151,7 @@ export default function CreateJobPage() {
       !location ||
       !category ||
       salary === '' ||
+      numberOfWorker === '' ||
       !startTime ||
       !endTime
     ) {
@@ -175,6 +179,7 @@ export default function CreateJobPage() {
           isTemplate: createTemplate,
           latitude,
           longitude,
+          numberOfWorker: Number(numberOfWorker),
         }),
       });
 
@@ -252,6 +257,19 @@ export default function CreateJobPage() {
                   value={salary}
                   onChange={(e) =>
                     setSalary(e.target.value ? Number(e.target.value) : '')
+                  }
+                />
+              </Field>
+
+              <Field label="Хэдэн хүн авах">
+                <Input
+                  type="number"
+                  min={1}
+                  value={numberOfWorker}
+                  onChange={(e) =>
+                    setNumberOfWorker(
+                      e.target.value ? Number(e.target.value) : '',
+                    )
                   }
                 />
               </Field>
@@ -401,6 +419,9 @@ export default function CreateJobPage() {
                   </p>
                   <p>
                     <b>Цалин:</b> {selectedTemplate.salary.toLocaleString()} ₮
+                  </p>
+                  <p>
+                    <b>Авах хүн:</b> {selectedTemplate.numberOfWorker}
                   </p>
                   <p className="whitespace-pre-line text-black/80">
                     {selectedTemplate.description}

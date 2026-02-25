@@ -7,7 +7,14 @@ import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Building2, Calendar, DollarSign, List, MapPin } from 'lucide-react';
+import {
+  Building2,
+  Calendar,
+  DollarSign,
+  List,
+  MapPin,
+  Users,
+} from 'lucide-react';
 import JobLocationMap from '@/components/JobLocationMap';
 
 const API_URL = 'http://localhost:3001';
@@ -24,6 +31,7 @@ type Job = {
   createdAt: string;
   latitude?: number | null;
   longitude?: number | null;
+  numberOfWorker: number;
   employer?: {
     employerName?: string | null;
   };
@@ -142,6 +150,11 @@ export default function JobDetailPage() {
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4" />
                     <b>{job.salary.toLocaleString()} ₮</b>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    <b>{job.numberOfWorker} хүн</b>
                   </div>
 
                   <div className="flex items-center gap-2">

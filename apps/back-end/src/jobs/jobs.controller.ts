@@ -20,6 +20,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       isTemplate,
       latitude,
       longitude, 
+      numberOfWorker,
     } = req.body;
 
     if (
@@ -29,7 +30,8 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       !category ||
       !salary ||
       !startTime ||
-      !endTime
+      !endTime ||
+      !numberOfWorker
     ) {
       return res.status(400).json({ message: 'Мэдээлэл дутуу' });
     }
@@ -56,7 +58,8 @@ export const createJob = async (req: AuthRequest, res: Response) => {
         employerId: req.user.userId,
         isTemplate: Boolean(isTemplate),
         latitude: latitude ? Number(latitude) : null,
-        longitude: longitude ? Number(longitude) : null
+        longitude: longitude ? Number(longitude) : null,
+        numberOfWorker: Number(numberOfWorker),
       },
     });
 
@@ -66,7 +69,6 @@ export const createJob = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 // GET /jobs
 export const getJobs = async (_req: Request, res: Response) => {
@@ -141,6 +143,7 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
         salary: true,
         startTime: true,
         endTime: true,
+        numberOfWorker: true,
       },
       orderBy: {
         createdAt: 'desc',

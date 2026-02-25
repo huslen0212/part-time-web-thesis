@@ -10,7 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Building2, Calendar, DollarSign, List, MapPin } from 'lucide-react';
+import {
+  Building2,
+  Calendar,
+  DollarSign,
+  List,
+  MapPin,
+  Users,
+} from 'lucide-react';
 import NearbySearchMap from '@/components/NearbySearchMap';
 
 const API_URL = 'http://localhost:3001';
@@ -27,6 +34,7 @@ type Job = {
   startTime: string;
   endTime: string;
   createdAt: string;
+  numberOfWorker: number;
   employer?: {
     employerName?: string | null;
   };
@@ -263,6 +271,10 @@ export default function JobSeekerHome() {
                   <div className="flex gap-2 items-center">
                     <DollarSign className="w-4 h-4" />
                     {job.salary.toLocaleString()} ₮
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Users className="w-4 h-4" />
+                    {job.numberOfWorker} хүн
                   </div>
                   <div className="flex gap-2 items-start text-black/60">
                     <Calendar className="w-4 h-4 mt-1" />
