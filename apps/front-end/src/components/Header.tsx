@@ -10,13 +10,21 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Bell } from 'lucide-react';
 
 type JwtPayload = {
   userId: number;
   role: 'JOB_SEEKER' | 'EMPLOYER';
   userName: string;
   exp: number;
+};
+
+type Notification = {
+  notificationId: number;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
 };
 
 function decodeToken(token: string): JwtPayload | null {
@@ -29,6 +37,9 @@ function decodeToken(token: string): JwtPayload | null {
 
 export default function Header() {
   const [user, setUser] = useState<JwtPayload | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const pathname = usePathname() || '/';
   const router = useRouter();
 
@@ -54,6 +65,59 @@ export default function Header() {
 
     setUser(decoded);
   }, [pathname]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const res = await fetch('http://localhost:3001/notifications', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setNotifications(data);
+        setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const markAsRead = async (notificationId: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await fetch(
+        `http://localhost:3001/notifications/${notificationId}/read`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const updated = notifications.map((n) =>
+        n.notificationId === notificationId ? { ...n, isRead: true } : n,
+      );
+
+      setNotifications(updated);
+      setUnreadCount(updated.filter((n) => !n.isRead).length);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -81,6 +145,48 @@ export default function Header() {
             <Link href="/createJob" className="text-sm hover:underline">
               Ажил нэмэх
             </Link>
+          )}
+
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="relative">
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                align="end"
+                className="w-80 max-h-96 overflow-y-auto"
+              >
+                {notifications.length === 0 && (
+                  <DropdownMenuItem disabled>
+                    Notification байхгүй
+                  </DropdownMenuItem>
+                )}
+
+                {notifications.map((n) => (
+                  <DropdownMenuItem
+                    key={n.notificationId}
+                    onClick={() => markAsRead(n.notificationId)}
+                    className={`flex flex-col items-start cursor-pointer ${
+                      !n.isRead ? 'bg-gray-100' : ''
+                    }`}
+                  >
+                    <span className="font-medium text-sm">{n.title}</span>
+                    <span className="text-xs text-black/60">{n.message}</span>
+                    <span className="text-[10px] text-black/40 mt-1">
+                      {new Date(n.createdAt).toLocaleString('mn-MN')}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {user ? (

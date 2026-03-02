@@ -40,13 +40,26 @@ export const createRequest = async (
       return;
     }
 
-    const request = await prisma.request.create({
-      data: {
-        jobSeekerId,
-        jobId: Number(jobId),
-        workerCount: Number(workerCount),
-      },
-    });
+  const request = await prisma.request.create({
+    data: {
+      jobSeekerId,
+      jobId: Number(jobId),
+      workerCount: Number(workerCount),
+    },
+    include: {
+      job: true,
+    },
+  });
+
+  // Employer-д notification
+  await prisma.notification.create({
+    data: {
+      userId: request.job.employerId, // 🔥 энд зассан
+      title: 'Шинэ хүсэлт ирлээ',
+      message: `${request.job.title} ажилд шинэ хүсэлт ирлээ`,
+      type: 'REQUEST_CREATED',
+    },
+  });
 
     res.json(request);
   } catch (error) {
@@ -203,6 +216,21 @@ export const updateRequestStatus = async (
           },
         });
       }
+
+  await tx.notification.create({
+    data: {
+      userId: request.jobSeekerId,
+      title:
+        status === 'APPROVED'
+          ? 'Таны хүсэлт батлагдлаа'
+          : 'Таны хүсэлт татгалзагдлаа',
+      message: `${request.job.title} ажилд таны хүсэлт ${status}`,
+      type:
+        status === 'APPROVED'
+          ? 'REQUEST_APPROVED'
+          : 'REQUEST_REJECTED',
+    },
+  });
 
       return approvedRequest;
     });

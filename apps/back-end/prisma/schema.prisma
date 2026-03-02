@@ -27,6 +27,12 @@ enum RequestStatus {
   CANCEL
 }
 
+enum NotificationType {
+  REQUEST_CREATED
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+}
+
 /* ================= MODELS ================= */
 
 model User {
@@ -41,6 +47,8 @@ model User {
 
   ratingsGiven    Rating[] @relation("RatingFromUser")
   ratingsReceived Rating[] @relation("RatingToUser")
+
+  notifications Notification[]
 }
 
 model JobSeeker {
@@ -116,4 +124,18 @@ model Rating {
   job      Job  @relation(fields: [jobId], references: [jobId])
 
   @@unique([fromUserId, toUserId, jobId]) // нэг ажлаар 1 удаа үнэлнэ
+}
+
+model Notification {
+  notificationId Int @id @default(autoincrement())
+
+  userId   Int
+  title    String
+  message  String
+  type     NotificationType
+
+  isRead   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [userId])
 }
