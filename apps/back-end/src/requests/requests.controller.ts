@@ -54,7 +54,7 @@ export const createRequest = async (
   // Employer-д notification
   await prisma.notification.create({
     data: {
-      userId: request.job.employerId, // 🔥 энд зассан
+      userId: request.job.employerId,
       title: 'Шинэ хүсэлт ирлээ',
       message: `${request.job.title} ажилд шинэ хүсэлт ирлээ`,
       type: 'REQUEST_CREATED',
@@ -223,8 +223,11 @@ export const updateRequestStatus = async (
       title:
         status === 'APPROVED'
           ? 'Таны хүсэлт батлагдлаа'
-          : 'Таны хүсэлт татгалзагдлаа',
-      message: `${request.job.title} ажилд таны хүсэлт ${status}`,
+          : 'Таны хүсэлт татгалзлаа',
+      message:
+        status === 'APPROVED'
+          ? `${request.job.title} ажилд таны хүсэлтийг зөвшөөрлөө`
+          : `${request.job.title} ажилд таны хүсэлтийг татгалзлаа`,
       type:
         status === 'APPROVED'
           ? 'REQUEST_APPROVED'

@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ChevronDown, Bell } from 'lucide-react';
 
 type JwtPayload = {
@@ -150,19 +151,22 @@ export default function Header() {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="relative">
+                <Button variant="ghost" size="icon" className="relative">
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1 rounded-full">
+                    <Badge
+                      variant="destructive"
+                      className="absolute -top-2 -right-2 px-1 py-0 text-[10px]"
+                    >
                       {unreadCount}
-                    </span>
+                    </Badge>
                   )}
-                </button>
+                </Button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent
                 align="end"
-                className="w-80 max-h-96 overflow-y-auto"
+                className="w-80 max-h-96 overflow-y-auto p-2"
               >
                 {notifications.length === 0 && (
                   <DropdownMenuItem disabled>
@@ -170,21 +174,40 @@ export default function Header() {
                   </DropdownMenuItem>
                 )}
 
-                {notifications.map((n) => (
-                  <DropdownMenuItem
-                    key={n.notificationId}
-                    onClick={() => markAsRead(n.notificationId)}
-                    className={`flex flex-col items-start cursor-pointer ${
-                      !n.isRead ? 'bg-gray-100' : ''
-                    }`}
-                  >
-                    <span className="font-medium text-sm">{n.title}</span>
-                    <span className="text-xs text-black/60">{n.message}</span>
-                    <span className="text-[10px] text-black/40 mt-1">
-                      {new Date(n.createdAt).toLocaleString('mn-MN')}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
+                <div className="space-y-2">
+                  {notifications.map((n) => (
+                    <DropdownMenuItem
+                      key={n.notificationId}
+                      onClick={() => markAsRead(n.notificationId)}
+                      className={`flex flex-col items-start rounded-md p-3 cursor-pointer ${
+                        !n.isRead ? 'bg-muted' : ''
+                      }`}
+                    >
+                      <span className="font-medium text-sm">{n.title}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {n.message}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground mt-1">
+                        {(() => {
+                          const d = new Date(n.createdAt);
+                          const month = String(d.getMonth() + 1).padStart(
+                            2,
+                            '0',
+                          );
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const year = d.getFullYear();
+                          const hour = String(d.getHours()).padStart(2, '0');
+                          const minute = String(d.getMinutes()).padStart(
+                            2,
+                            '0',
+                          );
+
+                          return `${month}/${day}/${year}, ${hour}:${minute}`;
+                        })()}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
