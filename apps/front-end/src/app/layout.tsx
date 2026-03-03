@@ -1,5 +1,8 @@
 import './global.css';
 import { Toaster } from 'sonner';
+import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
+import { MantineProvider } from '@mantine/core';
 
 export const metadata = {
   title: 'Welcome to ',
@@ -14,8 +17,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
-        <Toaster richColors position="bottom-right" />
+        <MantineProvider>
+          {children}
+          <Toaster richColors position="bottom-right" />
+        </MantineProvider>
       </body>
     </html>
   );
