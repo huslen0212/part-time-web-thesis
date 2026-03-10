@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { signToken } from './jwt';
 
-
 /// REGISTER
 export const register = async (req: Request, res: Response) => {
   try {
@@ -17,9 +16,7 @@ export const register = async (req: Request, res: Response) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({
-        message: 'И-мэйл аль хэдийн бүртгэлтэй',
-      });
+      return res.status(400).json({ message: 'И-мэйл аль хэдийн бүртгэлтэй' });
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -37,6 +34,9 @@ export const register = async (req: Request, res: Response) => {
             jobseekerId: createdUser.userId,
             userName: jobSeeker?.userName ?? null,
             phoneNumber: jobSeeker?.phoneNumber ?? null,
+            birthDate: jobSeeker?.birthDate ? new Date(jobSeeker.birthDate) : null,
+            gender: jobSeeker?.gender ?? null,
+            address: jobSeeker?.address ?? null,
           },
         });
       }
@@ -110,4 +110,3 @@ export const login = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
-

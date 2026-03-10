@@ -34,6 +34,11 @@ enum NotificationType {
   REQUEST_CANCELLED
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 /* ================= MODELS ================= */
 
 model User {
@@ -53,9 +58,12 @@ model User {
 }
 
 model JobSeeker {
-  jobseekerId Int    @id
+  jobseekerId Int @id
   userName    String?
   phoneNumber String?
+  birthDate   DateTime?
+  gender      Gender?
+  address     String?
   createdAt   DateTime @default(now())
 
   user     User     @relation(fields: [jobseekerId], references: [userId])

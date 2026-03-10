@@ -98,7 +98,7 @@ function SectionCard({
       )}
     >
       <CardHeader className="flex flex-row items-center gap-3 px-6 py-4 bg-zinc-50 border-b border-zinc-100 space-y-0">
-        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-[#2872a1] text-white flex items-center justify-center shrink-0">
           {icon}
         </div>
         <CardTitle className="text-xs font-semibold text-zinc-400 tracking-widest uppercase">
@@ -279,7 +279,7 @@ export default function CreateJobPage() {
           </div>
           <Button
             variant="outline"
-            className="gap-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl"
+            className="gap-2 border-[#2872a1] text-[#2872a1] hover:bg-[#2872a1] hover:text-white rounded-xl"
             onClick={() => setOpenDialog(true)}
           >
             <LayoutTemplate size={15} />
@@ -297,7 +297,7 @@ export default function CreateJobPage() {
                     placeholder="Жишээ: Барилгын ажилчин"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="rounded-xl border-zinc-200 focus-visible:ring-emerald-500"
+                    className="rounded-xl border-zinc-200 focus-visible:ring-[#7f9db1]"
                   />
                 </FieldGroup>
                 <FieldGroup label="Тайлбар">
@@ -306,12 +306,12 @@ export default function CreateJobPage() {
                     placeholder="Ажлын дэлгэрэнгүй тайлбар..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="rounded-xl border-zinc-200 focus-visible:ring-emerald-500 resize-none"
+                    className="rounded-xl border-zinc-200 focus-visible:ring-[#7f9db1] resize-none"
                   />
                 </FieldGroup>
                 <FieldGroup label="Төрөл">
                   <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="rounded-xl border-zinc-200 focus:ring-emerald-500">
+                    <SelectTrigger className="rounded-xl border-zinc-200 focus:ring-[#7f9db1]">
                       <SelectValue placeholder="Ажлын төрөл сонгох" />
                     </SelectTrigger>
                     <SelectContent>
@@ -333,7 +333,7 @@ export default function CreateJobPage() {
                     placeholder="Хаяг оруулах..."
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="rounded-xl border-zinc-200 focus-visible:ring-emerald-500"
+                    className="rounded-xl border-zinc-200 focus-visible:ring-[#7f9db1]"
                   />
                 </FieldGroup>
                 <FieldGroup label="Газрын зураг дээр сонгох">
@@ -346,7 +346,10 @@ export default function CreateJobPage() {
               </div>
             </SectionCard>
 
-            <SectionCard icon={<Clock size={15} />} title="Цаг хугацаа">
+            <SectionCard
+              icon={<Clock size={15} />}
+              title="Ажил эхлэх дуусах огноо"
+            >
               <div className="grid grid-cols-2 gap-4">
                 <FieldGroup label="Эхлэх цаг">
                   <DateTimePicker
@@ -384,7 +387,7 @@ export default function CreateJobPage() {
                     onChange={(e) =>
                       setSalary(e.target.value ? Number(e.target.value) : '')
                     }
-                    className="rounded-xl border-zinc-200 focus-visible:ring-emerald-500"
+                    className="rounded-xl border-zinc-200 focus-visible:ring-[#7f9db1]"
                   />
                 </FieldGroup>
                 <FieldGroup label="Авах ажилчдын тоо">
@@ -433,7 +436,7 @@ export default function CreateJobPage() {
 
             <Button
               size="lg"
-              className="w-full rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold gap-2 h-12"
+              className="w-full rounded-xl bg-[#2872a1] hover:bg-[#7f9db1] text-white font-semibold gap-2 h-12"
               onClick={handleSubmit}
               disabled={loading}
             >
@@ -490,24 +493,26 @@ export default function CreateJobPage() {
 
       {/* TEMPLATE DIALOG */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-        <DialogContent className="max-w-3xl rounded-2xl">
+        <DialogContent className="max-w-3xl rounded-2xl bg-white border border-[#CBDDE9]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
+            <DialogTitle className="text-xl font-bold text-black">
               Өмнөх загварууд
             </DialogTitle>
           </DialogHeader>
 
           <div className="grid grid-cols-[240px_1fr] gap-5 mt-1">
-            {/* List */}
+            {/* Template List */}
             <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
               {templates.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-10 text-zinc-300 gap-2">
+                <div className="flex flex-col items-center justify-center py-10 text-black gap-2">
                   <LayoutTemplate size={28} />
                   <p className="text-xs">Хадгалсан загвар байхгүй</p>
                 </div>
               )}
+
               {templates.map((t) => {
                 const active = selectedTemplate?.jobId === t.jobId;
+
                 return (
                   <div
                     key={t.jobId}
@@ -515,20 +520,32 @@ export default function CreateJobPage() {
                     className={cn(
                       'p-3 rounded-xl border cursor-pointer transition-all',
                       active
-                        ? 'bg-emerald-50 border-emerald-400'
-                        : 'bg-white border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50',
+                        ? 'bg-[#CBDDE9] border-[#CBDDE9] ring-2 ring-[#CBDDE9]/20'
+                        : 'bg-white border-[#CBDDE9] hover:border-[#2872A1] hover:bg-[#CBDDE9]/40',
                     )}
                   >
-                    <p className="text-sm font-semibold text-zinc-800 truncate mb-0.5">
+                    <p
+                      className={cn(
+                        'text-sm font-semibold truncate mb-0.5',
+                        active ? 'text-black' : 'text-black',
+                      )}
+                    >
                       {t.title}
                     </p>
-                    <p className="text-xs text-zinc-400 mb-3">
+
+                    <p
+                      className={cn(
+                        'text-xs mb-3',
+                        active ? 'text-black' : 'text-black',
+                      )}
+                    >
                       {t.category} · {t.salary.toLocaleString()}₮
                     </p>
+
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="flex-1 h-7 text-xs rounded-lg bg-emerald-700 hover:bg-emerald-800"
+                        className="flex-1 h-7 text-xs rounded-lg bg-[#2872A1] hover:bg-[#1f5c82] text-white"
                         onClick={(e) => {
                           e.stopPropagation();
                           applyTemplate(t);
@@ -536,10 +553,11 @@ export default function CreateJobPage() {
                       >
                         Ашиглах
                       </Button>
+
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 w-7 p-0 rounded-lg border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        className="h-7 w-7 p-0 rounded-lg border-[#CBDDE9] text-[#2872A1] hover:bg-[#CBDDE9]"
                         onClick={(e) => {
                           e.stopPropagation();
                           openDeleteConfirm(t.jobId);
@@ -553,52 +571,59 @@ export default function CreateJobPage() {
               })}
             </div>
 
-            {/* Detail */}
-            <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-5 min-h-[200px]">
+            {/* Detail Section */}
+            <div className="bg-white rounded-xl border border-[#CBDDE9] p-5 min-h-[200px]">
               {selectedTemplate ? (
                 <div className="flex flex-col gap-4">
                   <div>
-                    <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                    <h4 className="text-lg font-bold text-black mb-2">
                       {selectedTemplate.title}
                     </h4>
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 font-medium">
+
+                    <Badge className="bg-[#2872A1] text-white hover:bg-[#1f5c82] font-medium">
                       {selectedTemplate.category}
                     </Badge>
                   </div>
-                  <Separator />
+
+                  <Separator className="bg-[#CBDDE9]" />
+
                   <div className="flex flex-col gap-2.5 text-sm">
                     <div className="flex gap-3">
-                      <span className="font-semibold text-zinc-600 w-20 shrink-0">
+                      <span className="font-semibold text-black w-20 shrink-0">
                         Байршил
                       </span>
-                      <span className="text-zinc-500">
+                      <span className="text-black">
                         {selectedTemplate.location}
                       </span>
                     </div>
+
                     <div className="flex gap-3">
-                      <span className="font-semibold text-zinc-600 w-20 shrink-0">
+                      <span className="font-semibold text-black w-20 shrink-0">
                         Цалин
                       </span>
-                      <span className="text-emerald-700 font-semibold">
+                      <span className="text-black">
                         {selectedTemplate.salary.toLocaleString()} ₮
                       </span>
                     </div>
+
                     <div className="flex gap-3">
-                      <span className="font-semibold text-zinc-600 w-20 shrink-0">
+                      <span className="font-semibold text-black w-20 shrink-0">
                         Авах хүн
                       </span>
-                      <span className="text-zinc-500">
+                      <span className="text-black">
                         {selectedTemplate.numberOfWorker} хүн
                       </span>
                     </div>
                   </div>
-                  <Separator />
-                  <p className="text-sm text-zinc-500 leading-relaxed whitespace-pre-line">
+
+                  <Separator className="bg-[#CBDDE9]" />
+
+                  <p className="text-sm text-black leading-relaxed whitespace-pre-line">
                     {selectedTemplate.description}
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full min-h-[160px] text-zinc-300 gap-2">
+                <div className="flex flex-col items-center justify-center h-full min-h-[160px] text-black gap-2">
                   <LayoutTemplate size={30} />
                   <p className="text-xs">Зүүн талаас загвар сонгоно уу</p>
                 </div>
@@ -609,7 +634,7 @@ export default function CreateJobPage() {
           <DialogFooter>
             <Button
               variant="outline"
-              className="rounded-xl"
+              className="rounded-xl border-[#CBDDE9] text-black hover:bg-[#CBDDE9]"
               onClick={() => setOpenDialog(false)}
             >
               Хаах
