@@ -5,6 +5,7 @@ import jobRoutes from './jobs/jobs.routes';
 import requestRoutes from './requests/requests.routes';
 import profileRoutes from './profile/profile.routes';
 import notificationRoutes from './notifications/notifications.routes';
+import employerRoutes from './employer/employer.routes';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use('/jobs', jobRoutes);
 app.use('/requests', requestRoutes);
 app.use('/profile', profileRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/employer', employerRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
