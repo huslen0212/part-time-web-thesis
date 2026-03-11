@@ -347,7 +347,7 @@ export default function EmployerProfilePage() {
                                 {label}
                               </Label>
                               <Input
-                                value={(editForm as any)[key] || ''}
+                                value={editForm[key as keyof EditForm] || ''}
                                 onChange={(e) =>
                                   setEditForm({
                                     ...editForm,
