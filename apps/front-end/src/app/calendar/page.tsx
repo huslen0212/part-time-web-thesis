@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { sampleJobs, jobCategory } from '@/app/data/jobs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { TimePicker } from '@/components/time-picker';
+import { TimeInput } from '@mantine/dates';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -23,24 +22,38 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  Loader2,
+  X,
 } from 'lucide-react';
+
+const API_URL = 'http://localhost:3001';
 
 /* ================= TYPES ================= */
 
-interface Job {
-  id: number;
+interface ApiJob {
+  jobId: number;
   title: string;
-  day: string;
-  start: string;
-  end: string;
-  company: string;
+  description: string;
+  location: string;
   category: string;
-  description?: string;
+  salary: number;
+  startTime: string; // ISO string
+  endTime: string; // ISO string
+  employer: { employerName: string | null };
 }
 
-interface EventBox extends Job {
+interface EventBox {
+  id: number;
+  title: string;
+  company: string;
+  category: string;
+  description: string;
+  location: string;
+  salary: number;
+  startLabel: string;
+  endLabel: string;
   dayIndex: number;
-  top: number;
+  top: number; // float hour (e.g. 9.5 = 09:30)
   bottom: number;
   overlapPercentage: number;
   fitScore: number;
@@ -48,37 +61,42 @@ interface EventBox extends Job {
 
 /* ================= HELPERS ================= */
 
+function dateToFloat(d: Date): number {
+  return d.getHours() + d.getMinutes() / 60;
+}
+
 function hhmmToFloat(t: string): number {
   const [h, m] = t.split(':').map(Number);
   return h + m / 60;
+}
+
+function floatToHHMM(f: number): string {
+  const h = Math.floor(f);
+  const m = Math.round((f - h) * 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function calculateOverlap(js: number, je: number, us: number, ue: number) {
   const start = Math.max(js, us);
   const end = Math.min(je, ue);
   if (start >= end) return 0;
-
   const overlap = end - start;
   return ((overlap / (je - js)) * 100 + (overlap / (ue - us)) * 100) / 2;
 }
 
 function calculateFitScore(js: number, je: number, us: number, ue: number) {
   let score = (calculateOverlap(js, je, us, ue) / 100) * 40;
-
   if (js >= us && je <= ue) score += 20;
   if (Math.abs(js - us) < 0.5) score += 10;
   if (Math.abs(je - ue) < 0.5) score += 10;
-
   const diff = Math.abs(je - js - (ue - us));
   score += Math.max(0, 20 - diff * 5);
-
   return Math.round(score);
 }
 
 function groupOverlappingEvents(events: EventBox[]) {
   const sorted = [...events].sort((a, b) => a.top - b.top);
   const groups: EventBox[][] = [];
-
   sorted.forEach((ev) => {
     let placed = false;
     for (const g of groups) {
@@ -90,63 +108,126 @@ function groupOverlappingEvents(events: EventBox[]) {
     }
     if (!placed) groups.push([ev]);
   });
-
   return groups;
 }
 
 /* ================= CONSTANTS ================= */
 
-const dayIndex: Record<string, number> = {
-  Даваа: 0,
-  Мягмар: 1,
-  Лхагва: 2,
-  Пүрэв: 3,
-  Баасан: 4,
-  Бямба: 5,
-  Ням: 6,
+// JS getDay() → 0=Sun,1=Mon,...6=Sat  →  our index 0=Mon..6=Sun
+const jsDayToIndex: Record<number, number> = {
+  1: 0, // Даваа
+  2: 1, // Мягмар
+  3: 2, // Лхагва
+  4: 3, // Пүрэв
+  5: 4, // Баасан
+  6: 5, // Бямба
+  0: 6, // Ням
 };
 
-const dayList = Object.keys(dayIndex);
+const dayList = [
+  'Даваа',
+  'Мягмар',
+  'Лхагва',
+  'Пүрэв',
+  'Баасан',
+  'Бямба',
+  'Ням',
+];
 
-const categoryColors: Record<string, string> = {
-  Худалдаа: 'bg-blue-500 border-blue-600',
-  Хоол: 'bg-orange-500 border-orange-600',
-  Цэвэрлэгээ: 'bg-emerald-500 border-emerald-600',
-  Хүргэлт: 'bg-purple-500 border-purple-600',
-  Агуулах: 'bg-slate-600 border-slate-700',
-  Үйлчилгээ: 'bg-pink-500 border-pink-600',
-  Маркетинг: 'bg-yellow-500 border-yellow-600',
-  Дэмжлэг: 'bg-cyan-500 border-cyan-600',
-  Ивент: 'bg-rose-500 border-rose-600',
-};
+/** Энэ долоо хоногийн Даваа гарагийн огноог буцаана */
+function getMondayOfCurrentWeek(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const jsDay = today.getDay();
+  const diffToMonday = jsDay === 0 ? -6 : 1 - jsDay;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday);
+  return monday;
+}
+
+/** dayIndex (0=Mon..6=Sun) → энэ долоо хоногийн тухайн өдрийн Date */
+function getDateOfThisWeek(dayIndex: number): Date {
+  const monday = getMondayOfCurrentWeek();
+  const d = new Date(monday);
+  d.setDate(monday.getDate() + dayIndex);
+  return d;
+}
+
+const ROW_H = 48;
 
 /* ================= COMPONENT ================= */
 
 export default function CalendarPage() {
   const router = useRouter();
-
-  /* ✅ БҮХ useState — ЭХЭНД */
   const [checkedAuth, setCheckedAuth] = useState(false);
+  const [apiJobs, setApiJobs] = useState<ApiJob[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
 
   const [inputs, setInputs] = useState<
     { day: string; start: string; end: string; type: string }[]
-  >([{ day: '', start: '', end: '', type: '' }]);
+  >(() => {
+    if (typeof window === 'undefined')
+      return [{ day: '', start: '', end: '', type: '' }];
+    try {
+      const saved = localStorage.getItem('calendar_inputs');
+      return saved
+        ? JSON.parse(saved)
+        : [{ day: '', start: '', end: '', type: '' }];
+    } catch {
+      return [{ day: '', start: '', end: '', type: '' }];
+    }
+  });
 
-  const [events, setEvents] = useState<EventBox[]>([]);
+  const [events, setEvents] = useState<EventBox[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('calendar_events');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
-  /* ✅ Auth guard */
+  /* Auth check */
   useEffect(() => {
     const token = localStorage.getItem('token');
-
     if (!token) {
       router.replace('/login');
       return;
     }
-
     setCheckedAuth(true);
   }, [router]);
 
-  /* ✅ Conditional return ХАМГИЙН СҮҮЛД */
+  /* Persist inputs & events to localStorage */
+  useEffect(() => {
+    localStorage.setItem('calendar_inputs', JSON.stringify(inputs));
+  }, [inputs]);
+
+  useEffect(() => {
+    localStorage.setItem('calendar_events', JSON.stringify(events));
+  }, [events]);
+
+  /* Fetch all jobs from backend */
+  useEffect(() => {
+    if (!checkedAuth) return;
+    const token = localStorage.getItem('token');
+    fetch(`${API_URL}/jobs`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data: ApiJob[]) => {
+        const jobs = Array.isArray(data) ? data : [];
+        setApiJobs(jobs);
+        const unique = Array.from(
+          new Set(jobs.map((j) => j.category).filter(Boolean)),
+        );
+        setCategories(unique);
+      })
+      .catch(console.error)
+      .finally(() => setJobsLoading(false));
+  }, [checkedAuth]);
+
   if (!checkedAuth) return null;
 
   /* ================= HANDLERS ================= */
@@ -156,31 +237,56 @@ export default function CalendarPage() {
     setInputs(inputs.filter((_, i) => i !== index));
   };
 
+  const clearAll = () => {
+    setEvents([]);
+    setInputs([{ day: '', start: '', end: '', type: '' }]);
+    localStorage.removeItem('calendar_events');
+    localStorage.removeItem('calendar_inputs');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     const result: EventBox[] = [];
 
     inputs.forEach((input) => {
       if (!input.day || !input.start || !input.end) return;
-
-      const us = parseFloat(input.start);
-      const ue = parseFloat(input.end);
+      const us = hhmmToFloat(input.start);
+      const ue = hhmmToFloat(input.end);
       if (us >= ue) return;
 
-      sampleJobs.forEach((job) => {
-        if (job.day !== input.day) return;
+      const targetDayIndex = dayList.indexOf(input.day);
+
+      apiJobs.forEach((job) => {
+        const start = new Date(job.startTime);
+        const end = new Date(job.endTime);
+
+        const jobDayIndex = jsDayToIndex[start.getDay()];
+        if (jobDayIndex !== targetDayIndex) return;
+
+        // Зөвхөн энэ долоо хоногийн ажлуудыг л харуулна
+        const targetDate = getDateOfThisWeek(targetDayIndex);
+        if (start.toDateString() !== targetDate.toDateString()) return;
+
+        // Category filter
         if (input.type && job.category !== input.type) return;
 
-        const js = hhmmToFloat(job.start);
-        const je = hhmmToFloat(job.end);
+        const js = dateToFloat(start);
+        const je = dateToFloat(end);
 
         const overlap = calculateOverlap(js, je, us, ue);
         if (overlap < 10) return;
 
         result.push({
-          ...job,
-          dayIndex: dayIndex[job.day],
+          id: job.jobId,
+          title: job.title,
+          company: job.employer.employerName || '—',
+          category: job.category,
+          description: job.description,
+          location: job.location,
+          salary: job.salary,
+          startLabel: floatToHHMM(js),
+          endLabel: floatToHHMM(je),
+          dayIndex: jobDayIndex,
           top: js,
           bottom: je,
           overlapPercentage: overlap,
@@ -193,65 +299,67 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-sans text-gray-900">
+    <div className="min-h-screen bg-zinc-50 text-gray-900">
       <Header />
-      <main className="max-w-7xl mx-auto p-10 space-y-8">
-        {/* ================= HEADER ================= */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
-              Ажлын хуваарь зохицуулагч
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Өөрийн боломжит цагт таарах ажлуудыг хялбархан олоорой.
-            </p>
-          </div>
+
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        {/* ── Page Header ── */}
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+            Ажлын хуваарь зохицуулагч
+          </h1>
+          <p className="text-sm text-zinc-500 mt-1">
+            Өөрийн боломжит цагт таарах ажлуудыг хялбархан олоорой.
+          </p>
+          <p className="text-sm text-zinc-500 mt-1">
+            Санамж: Зөвхөн энэ долоо хоногийн ажлуудыг харуулна. Та оруулсан
+            цагийн мэдээллээ хадгалах боломжтой.
+          </p>
         </div>
 
-        {/* ================= FORM SECTION ================= */}
-        <Card className="border-none shadow-lg bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b pb-4">
-            <CardTitle className="flex items-center gap-2 text-xl text-primary">
-              <Clock className="w-5 h-5" />
+        {/* ── Form Card ── */}
+        <Card className="shadow-none border-zinc-200 rounded-2xl bg-white">
+          <CardHeader className="border-b border-zinc-100 pb-4 px-6 pt-5">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-800">
+              <Clock className="w-4 h-4 text-[#2872A1]" />
               Чөлөөт цагаа оруулах
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+          <CardContent className="pt-5 px-6 pb-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {inputs.map((row, idx) => (
                   <div
                     key={idx}
-                    className="relative p-5 border border-gray-100 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow group"
+                    className="relative p-4 border border-zinc-100 rounded-xl bg-zinc-50 hover:border-zinc-200 transition-colors group"
                   >
                     {inputs.length > 1 && (
-                      <Button
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm flex items-center justify-center"
                         onClick={() => removeInputRow(idx)}
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     )}
 
-                    <div className="space-y-4">
-                      {/* Day Selection */}
+                    <div className="space-y-3">
+                      {/* Day */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="outline"
-                            className="w-full justify-between font-normal hover:border-blue-400"
+                            className="w-full justify-between font-normal h-9 text-sm border-zinc-200 bg-white hover:border-[#2872A1]"
                           >
-                            <span className="flex items-center gap-2">
-                              <CalendarIcon className="w-4 h-4 text-gray-400" />
+                            <span className="flex items-center gap-2 text-zinc-600">
+                              <CalendarIcon className="w-3.5 h-3.5 text-zinc-400" />
                               {row.day || 'Өдөр сонгох'}
                             </span>
-                            <ChevronDown className="w-4 h-4 opacity-50" />
+                            <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[200px]">
+                        <DropdownMenuContent className="w-[180px]">
                           {dayList.map((d) => (
                             <DropdownMenuItem
                               key={d}
@@ -267,21 +375,21 @@ export default function CalendarPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      {/* Category Selection */}
+                      {/* Category */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="outline"
-                            className="w-full justify-between font-normal hover:border-blue-400"
+                            className="w-full justify-between font-normal h-9 text-sm border-zinc-200 bg-white hover:border-[#2872A1]"
                           >
-                            <span className="flex items-center gap-2">
-                              <Briefcase className="w-4 h-4 text-gray-400" />
+                            <span className="flex items-center gap-2 text-zinc-600">
+                              <Briefcase className="w-3.5 h-3.5 text-zinc-400" />
                               {row.type || 'Бүх төрөл'}
                             </span>
-                            <ChevronDown className="w-4 h-4 opacity-50" />
+                            <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[200px] max-h-[300px] overflow-y-auto">
+                        <DropdownMenuContent className="w-[180px] max-h-[260px] overflow-y-auto">
                           <DropdownMenuItem
                             onClick={() => {
                               const cp = [...inputs];
@@ -291,7 +399,7 @@ export default function CalendarPage() {
                           >
                             Бүх төрөл
                           </DropdownMenuItem>
-                          {jobCategory.map((c) => (
+                          {categories.map((c) => (
                             <DropdownMenuItem
                               key={c}
                               onClick={() => {
@@ -306,32 +414,37 @@ export default function CalendarPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      {/* Time Inputs */}
-                      <div className="grid grid-cols-2 gap-3">
+                      {/* Times */}
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-[11px] text-zinc-400 font-medium">
                             Эхлэх цаг
                           </span>
-                          <TimePicker
+                          <TimeInput
                             value={row.start}
-                            onChange={(val) => {
+                            onChange={(e) => {
                               const cp = [...inputs];
-                              cp[idx].start = val;
+                              cp[idx].start = e.currentTarget.value;
                               setInputs(cp);
+                            }}
+                            classNames={{
+                              input: 'rounded-xl border-zinc-200 text-sm h-9',
                             }}
                           />
                         </div>
-
                         <div className="space-y-1">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-[11px] text-zinc-400 font-medium">
                             Дуусах цаг
                           </span>
-                          <TimePicker
+                          <TimeInput
                             value={row.end}
-                            onChange={(val) => {
+                            onChange={(e) => {
                               const cp = [...inputs];
-                              cp[idx].end = val;
+                              cp[idx].end = e.currentTarget.value;
                               setInputs(cp);
+                            }}
+                            classNames={{
+                              input: 'rounded-xl border-zinc-200 text-sm h-9',
                             }}
                           />
                         </div>
@@ -340,7 +453,7 @@ export default function CalendarPage() {
                   </div>
                 ))}
 
-                {/* Add Button Box */}
+                {/* Add row button */}
                 <button
                   type="button"
                   disabled={inputs.length >= 7}
@@ -350,86 +463,113 @@ export default function CalendarPage() {
                       { day: '', start: '', end: '', type: '' },
                     ])
                   }
-                  className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-400 hover:bg-blue-50/50 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-zinc-200 rounded-xl hover:border-[#2872A1] hover:bg-blue-50/40 transition-all group disabled:opacity-40 disabled:cursor-not-allowed min-h-[140px]"
                 >
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <Plus className="w-5 h-5 text-blue-600" />
+                  <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <Plus className="w-4 h-4 text-[#2872A1]" />
                   </div>
-                  <span className="text-sm font-medium text-gray-600">
+                  <span className="text-xs font-medium text-zinc-500">
                     Өдөр нэмэх
                   </span>
                 </button>
               </div>
 
-              <div className="pt-4 border-t">
+              <div className="pt-3 border-t border-zinc-100 flex items-center gap-3">
                 <Button
                   type="submit"
-                  className="w-full md:w-auto px-8 py-6 text-base font-semibold bg-gray-900 hover:bg-gray-800 shadow-xl shadow-gray-200"
+                  disabled={jobsLoading}
+                  className="h-10 px-6 text-sm font-semibold bg-[#2872A1] hover:bg-[#1f5c82] text-white rounded-xl shadow-none"
                 >
-                  <Search className="w-5 h-5 mr-2" />
-                  Тохирох ажлуудыг хайх
+                  {jobsLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Ажлуудыг ачааллаж байна...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4 mr-2" />
+                      Тохирох ажлуудыг хайх
+                    </>
+                  )}
                 </Button>
+                {!jobsLoading && (
+                  <span className="text-xs text-zinc-400">
+                    {apiJobs.length} ажил ачааллагдлаа
+                  </span>
+                )}
+                {events.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={clearAll}
+                    className="h-10 px-4 text-sm font-medium border-zinc-200 text-zinc-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 rounded-xl shadow-none ml-auto"
+                  >
+                    <X className="w-4 h-4 mr-1.5" />
+                    Цэвэрлэх
+                  </Button>
+                )}
               </div>
             </form>
           </CardContent>
         </Card>
 
-        {/* ================= CALENDAR SECTION ================= */}
-        <Card className="border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white ring-1 ring-slate-900/5">
-          <CardHeader className="bg-white border-b border-slate-100 px-8 py-6 flex flex-row justify-between items-center backdrop-blur-sm sticky top-0 z-20">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-blue-50 rounded-xl">
-                <CalendarIcon className="w-6 h-6 text-blue-600" />
+        {/* ── Calendar Card ── */}
+        <Card className="shadow-none border-zinc-200 rounded-2xl overflow-hidden bg-white">
+          <CardHeader className="border-b border-zinc-100 px-6 py-4 flex flex-row justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <CalendarIcon className="w-4 h-4 text-[#2872A1]" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+                <h2 className="text-base font-bold text-zinc-800">
                   7 хоногийн хуваарь
                 </h2>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <p className="text-[11px] text-zinc-400 mt-0.5">
                   Таны төлөвлөсөн ажлууд
                 </p>
               </div>
             </div>
-
             <Badge
               variant="secondary"
-              className="px-4 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors rounded-full font-semibold border-0"
+              className="px-3 py-1 bg-zinc-100 text-zinc-600 rounded-full text-xs font-semibold border-0"
             >
               {events.length} ажил олдлоо
             </Badge>
           </CardHeader>
 
-          <div className="overflow-x-auto custom-scrollbar">
-            <div className="min-w-[1000px] relative bg-white">
-              <div className="grid grid-cols-8 bg-slate-50/80 border-b border-slate-200 sticky top-0 z-10 backdrop-blur-md">
-                <div className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center border-r border-slate-200/60">
+          <div className="overflow-x-auto">
+            <div className="min-w-[900px] relative bg-white">
+              {/* Day headers */}
+              <div className="grid grid-cols-8 bg-zinc-50 border-b border-zinc-100 sticky top-0 z-10">
+                <div className="py-2.5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center border-r border-zinc-100">
                   Цаг
                 </div>
                 {dayList.map((d) => (
                   <div
                     key={d}
-                    className="p-4 text-center text-sm font-bold text-slate-700 border-r border-slate-200/60 last:border-r-0 uppercase tracking-tight"
+                    className="py-2.5 text-center text-xs font-bold text-zinc-600 border-r border-zinc-100 last:border-r-0 uppercase tracking-tight"
                   >
                     {d}
                   </div>
                 ))}
               </div>
 
-              {/* Table Body */}
+              {/* Time rows */}
               <div className="relative">
                 {Array.from({ length: 16 }).map((_, i) => {
                   const hour = i + 7;
                   return (
                     <div
                       key={hour}
-                      className="grid grid-cols-8 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/30 transition-colors group/row"
+                      className="grid grid-cols-8 border-b border-zinc-100 last:border-b-0"
+                      style={{ height: `${ROW_H}px` }}
                     >
-                      {/* Time Column - Distinct Look */}
-                      <div className="p-2 text-xs font-semibold text-slate-400 border-r border-slate-200/60 bg-slate-50/40 flex items-start justify-center pt-3 group-hover/row:bg-slate-100/50 transition-colors">
+                      {/* Hour label */}
+                      <div className="text-[10px] font-semibold text-zinc-400 border-r border-zinc-100 bg-zinc-50/60 flex items-start justify-center pt-1.5">
                         {hour}:00
                       </div>
 
-                      {/* Days Columns */}
+                      {/* Day cells */}
                       {Array.from({ length: 7 }).map((_, dayIdx) => {
                         const dayEvents = events.filter(
                           (e) => e.dayIndex === dayIdx,
@@ -439,69 +579,52 @@ export default function CalendarPage() {
                         return (
                           <div
                             key={dayIdx}
-                            className="relative min-h-[70px] border-r border-slate-200/60 last:border-r-0 group/cell bg-white"
+                            className="relative border-r border-zinc-100 last:border-r-0 bg-white"
+                            style={{ height: `${ROW_H}px` }}
                           >
-                            {/* Grid lines helper - Softer look */}
-                            <div className="absolute top-1/2 w-full border-t border-dashed border-slate-100 -z-0 pointer-events-none"></div>
+                            <div className="absolute top-1/2 w-full border-t border-dashed border-zinc-100 pointer-events-none" />
 
                             {groups.map((group) =>
                               group.map((ev, index) => {
                                 if (ev.top >= hour + 1 || ev.bottom <= hour)
                                   return null;
-
                                 const width = 100 / group.length;
 
                                 return (
                                   <div
                                     key={ev.id}
+                                    title={`${ev.title}\n${ev.company}\n${ev.location}\n${ev.salary.toLocaleString()}₮`}
                                     className={`
-                                  absolute rounded-lg border shadow-sm p-2.5
-                                  flex flex-col justify-start cursor-pointer group
-                                  transition-all duration-300 ease-out
-                                  overflow-hidden whitespace-nowrap
-                                  
-                                  /* Colors - Таны логик хэвээрээ */
-                                  ${
-                                    categoryColors[ev.category] ||
-                                    'bg-blue-600 border-blue-700'
-                                  }
-                                  text-white ring-1 ring-black/5
-
-                                  /* Hover Logic: Таны хүссэнээр яг хэвээрээ */
-                                  hover:!w-[260px] 
-                                  hover:z-50 
-                                  hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)]
-                                  hover:brightness-105
-                                  hover:whitespace-normal
-                                  hover:scale-[1.02]
-                                `}
-                                    title={ev.description}
-                                    aria-label={ev.description}
+                                      absolute rounded-md border shadow-sm px-1.5 py-1
+                                      flex flex-col justify-start cursor-pointer
+                                      transition-all duration-200 overflow-hidden whitespace-nowrap
+                                      bg-[#2872A1] border-[#1f5c82]
+                                      text-white ring-1 ring-black/5
+                                      hover:!w-[220px] hover:z-50 hover:shadow-lg
+                                      hover:whitespace-normal hover:brightness-105
+                                    `}
                                     style={{
-                                      top: `${(ev.top - hour) * 70 + 3}px`,
-                                      height: `${(ev.bottom - ev.top) * 70 - 6}px`, // Slight padding adjustment
-                                      left: `${width * index + 0.5}%`, // Slight offset
+                                      top: `${(ev.top - hour) * ROW_H + 2}px`,
+                                      height: `${(ev.bottom - ev.top) * ROW_H - 4}px`,
+                                      left: `${width * index + 0.5}%`,
                                       width: `${width - 1}%`,
                                     }}
+                                    onClick={() =>
+                                      router.push(`/jobs/${ev.id}`)
+                                    }
                                   >
-                                    <div className="font-bold text-xs truncate hover:text-clip leading-tight mb-1 tracking-wide">
+                                    <div className="font-semibold text-[10px] truncate leading-tight">
                                       {ev.title}
                                     </div>
-                                    <div className="text-[10px] opacity-90 truncate mb-1.5 flex items-center gap-1">
-                                      <Briefcase className="w-3 h-3 inline opacity-80" />
-                                      <span className="font-medium">
-                                        {ev.company}
-                                      </span>
+                                    <div className="text-[9px] opacity-80 truncate flex items-center gap-0.5 mt-0.5">
+                                      <Briefcase className="w-2.5 h-2.5 shrink-0" />
+                                      {ev.company}
                                     </div>
-
-                                    {ev.description && (
-                                      <div className="text-[11px] opacity-95 leading-snug mb-2 text-white/90 line-clamp-2">
-                                        {ev.description}
-                                      </div>
-                                    )}
-
-                                    <div className="mt-auto text-[9px] font-medium tracking-wider opacity-90 bg-black/20 rounded-md px-1.5 py-0.5 w-fit backdrop-blur-sm">
-                                      {ev.start} - {ev.end}
+                                    <div className="text-[9px] opacity-80 mt-0.5 line-clamp-3 whitespace-normal leading-tight">
+                                      {ev.description}
+                                    </div>
+                                    <div className="mt-auto text-[8px] font-medium opacity-90 bg-black/20 rounded px-1 py-0.5 w-fit">
+                                      {ev.startLabel}–{ev.endLabel}
                                     </div>
                                   </div>
                                 );
@@ -518,6 +641,7 @@ export default function CalendarPage() {
           </div>
         </Card>
       </main>
+
       <Footer />
     </div>
   );

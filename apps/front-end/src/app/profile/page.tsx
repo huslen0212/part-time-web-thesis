@@ -367,18 +367,16 @@ export default function ProfilePage() {
 
           {/* ── Right: Calendar + Requests ── */}
           <div className="flex flex-col gap-8">
-            {approved.length > 0 && (
-              <section>
-                <h2 className="text-xl font-bold text-zinc-900 mb-4">
-                  Ажлын хуваарь
-                </h2>
-                <Card className="shadow-none rounded-2xl border-zinc-200">
-                  <CardContent className="p-6">
-                    <ApprovedJobsCalendar items={approved} />
-                  </CardContent>
-                </Card>
-              </section>
-            )}
+            <section>
+              <h2 className="text-xl font-bold text-zinc-900 mb-4">
+                Ажлын хуваарь
+              </h2>
+              <Card className="shadow-none rounded-2xl border-zinc-200">
+                <CardContent className="p-6">
+                  <ApprovedJobsCalendar items={approved} />
+                </CardContent>
+              </Card>
+            </section>
 
             <section>
               <h2 className="text-xl font-bold text-zinc-900 mb-5">
