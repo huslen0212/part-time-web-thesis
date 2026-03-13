@@ -6,13 +6,19 @@
       "request": "launch",
       "name": "Debug @part-time-web/api with Nx",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "@part-time-web/api"],
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "@part-time-web/api"
+      ],
       "env": {
         "NODE_OPTIONS": "--inspect=9229"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/apps/api/dist/**/*.(m|c|)js",
@@ -24,17 +30,42 @@
       "request": "launch",
       "name": "Debug @part-time-web/back-end with Nx",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "serve", "@part-time-web/back-end"],
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "@part-time-web/back-end"
+      ],
       "env": {
         "NODE_OPTIONS": "--inspect=9230"
       },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/apps/back-end/dist/**/*.(m|c|)js",
         "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/diplom/part-time-web/apps/back-end/node_modules",
+      "program": "c:/diplom/part-time-web/apps/back-end/node_modules/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
       ]
     }
   ]

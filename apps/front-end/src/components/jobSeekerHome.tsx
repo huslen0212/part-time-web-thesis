@@ -14,13 +14,11 @@ import {
 import {
   Building2,
   Calendar,
-  DollarSign,
   MapPin,
   Users,
-  Tag,
   Search,
   SlidersHorizontal,
-  Locate,
+  Banknote,
 } from 'lucide-react';
 import NearbySearchMap from '@/components/NearbySearchMap';
 import { cn } from '@/lib/utils';
@@ -50,8 +48,8 @@ const SEARCH_TABS: {
 }[] = [
   { type: 'title', label: 'Нэрээр', icon: <Search size={14} /> },
   { type: 'category', label: 'Төрлөөр', icon: <SlidersHorizontal size={14} /> },
-  { type: 'salary', label: 'Цалингаар', icon: <DollarSign size={14} /> },
-  { type: 'location', label: 'Байршлаар', icon: <Locate size={14} /> },
+  { type: 'salary', label: 'Цалингаар', icon: <Banknote size={14} /> },
+  { type: 'location', label: 'Байршлаар', icon: <MapPin size={14} /> },
 ];
 
 const CATEGORIES = [
@@ -325,10 +323,13 @@ export default function JobSeekerHome() {
                       text={`${job.numberOfWorker} хүн`}
                     />
                     <InfoRow
-                      icon={<DollarSign size={11} />}
+                      icon={<Banknote size={11} />}
                       text={`${job.salary.toLocaleString()} ₮`}
                     />
-                    <InfoRow icon={<Tag size={11} />} text={job.category} />
+                    <InfoRow
+                      icon={<SlidersHorizontal size={11} />}
+                      text={job.category}
+                    />
                   </div>
 
                   {/* Time */}

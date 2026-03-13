@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 import {
   Calendar,
   MapPin,
-  Tag,
+  SlidersHorizontal,
   Mail,
   Phone,
   User,
@@ -573,7 +573,7 @@ function RequestCard({ r, cardClass }: { r: MyRequest; cardClass: string }) {
               <span className="truncate">{r.job.location}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-              <Tag size={11} className="text-zinc-400 shrink-0" />
+              <SlidersHorizontal size={11} className="text-zinc-400 shrink-0" />
               {r.job.category}
             </div>
             <div className="flex items-start gap-1.5 text-xs text-zinc-500">

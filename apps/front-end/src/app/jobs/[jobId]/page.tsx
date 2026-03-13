@@ -16,13 +16,13 @@ import {
 import { toast } from 'sonner';
 import {
   Building2,
-  DollarSign,
-  Tag,
   MapPin,
   Users,
   ArrowLeft,
+  Banknote,
   Send,
   Clock,
+  SlidersHorizontal,
 } from 'lucide-react';
 import JobLocationMap from '@/components/JobLocationMap';
 import { cn } from '@/lib/utils';
@@ -261,10 +261,9 @@ export default function JobDetailPage() {
                   value={job.location}
                 />
                 <InfoItem
-                  icon={<DollarSign size={15} />}
+                  icon={<Banknote size={15} />}
                   label="Цалин"
                   value={`${job.salary.toLocaleString()} ₮`}
-                  valueClass="text-emerald-700"
                 />
                 <InfoItem
                   icon={<Users size={15} />}
@@ -272,13 +271,13 @@ export default function JobDetailPage() {
                   value={`${job.numberOfWorker} хүн`}
                 />
                 <InfoItem
-                  icon={<Tag size={15} />}
+                  icon={<SlidersHorizontal size={15} />}
                   label="Төрөл"
                   value={job.category}
                 />
                 <InfoItem
                   icon={<Clock size={15} />}
-                  label="Цаг хугацаа"
+                  label="Ажил эхлэх дуусах цаг"
                   value={
                     <span>
                       {formatDate(job.startTime)}
