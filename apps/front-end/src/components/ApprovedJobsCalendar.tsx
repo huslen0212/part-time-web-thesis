@@ -58,7 +58,7 @@ function formatTime(date: Date | null) {
     hour12: false,
   });
 }
-
+// Calendar event-iin custom component
 function EventPill({
   event,
 }: {
@@ -158,6 +158,7 @@ export default function ApprovedJobsCalendar({
 }) {
   const router = useRouter();
 
+  // backend-s irsen data-g calendar event format-ruu shiljuulne
   const events: CalendarEvent[] = items.map((r) => ({
     id: String(r.requestId),
     title: r.job.title,
@@ -171,6 +172,7 @@ export default function ApprovedJobsCalendar({
     },
   }));
 
+  // Calendar event deer darhad job-iin detail page-ruu yavah function
   const handleEventClick = (arg: EventClickArg) => {
     arg.jsEvent.preventDefault();
     router.push(`/jobs/${arg.event.extendedProps.jobId}`);

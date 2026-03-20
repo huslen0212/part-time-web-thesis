@@ -62,6 +62,7 @@ type JobTemplate = {
   numberOfWorker: number;
 };
 
+// token decode hiih function
 function decodeToken(token: string): JwtPayload | null {
   try {
     return JSON.parse(atob(token.split('.')[1]));
@@ -79,6 +80,7 @@ const CATEGORIES = [
   'Барилга',
 ];
 
+// section card component
 function SectionCard({
   icon,
   title,
@@ -110,6 +112,7 @@ function SectionCard({
   );
 }
 
+// field group component
 function FieldGroup({
   label,
   children,
@@ -127,8 +130,10 @@ function FieldGroup({
 
 export default function CreateJobPage() {
   const router = useRouter();
+  // loading state
   const [loading, setLoading] = useState(false);
 
+  // form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -139,6 +144,7 @@ export default function CreateJobPage() {
   const [createTemplate, setCreateTemplate] = useState(false);
   const [numberOfWorker, setNumberOfWorker] = useState<number | ''>('');
 
+  // template-uudiin state
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<JobTemplate | null>(
@@ -147,9 +153,11 @@ export default function CreateJobPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
+  // gazriin urtarag, urgurug state
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
+  // template-uudiig backend-s avna
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return router.push('/login');
@@ -166,6 +174,7 @@ export default function CreateJobPage() {
       .catch(() => toast.error('Template ачаалж чадсангүй'));
   }, [router]);
 
+  // template-iin medeelliig form-d oruulna
   const applyTemplate = (job: JobTemplate) => {
     setTitle(job.title);
     setDescription(job.description);
@@ -179,12 +188,14 @@ export default function CreateJobPage() {
     setNumberOfWorker(job.numberOfWorker ?? 1);
   };
 
+  // gazriin urtarag, urgurug state-g shinechleh function
   const handleLocationSelect = (lat: number, lng: number, address: string) => {
     setLatitude(lat);
     setLongitude(lng);
     setLocation(address);
   };
 
+  // startTime, endTime state-g string-ruu hurvuuleh function
   const handleStartTimeChange = (value: string | null) => {
     setStartTime(value ? new Date(value) : null);
   };
@@ -193,11 +204,13 @@ export default function CreateJobPage() {
     setEndTime(value ? new Date(value) : null);
   };
 
+  // template ustgah confirm dialog
   const openDeleteConfirm = (jobId: number) => {
     setDeleteTargetId(jobId);
     setDeleteConfirmOpen(true);
   };
 
+  // template ustgah function
   const confirmDelete = async () => {
     if (!deleteTargetId) return;
     try {
@@ -216,6 +229,7 @@ export default function CreateJobPage() {
     }
   };
 
+  // form-iin medeelliig backend ruu yvuulah function
   const handleSubmit = async () => {
     if (
       !title ||
@@ -232,6 +246,7 @@ export default function CreateJobPage() {
     }
     setLoading(true);
     try {
+      // form-iin medeelliig backend ruu yvuulna
       const res = await fetch(`${API_URL}/jobs`, {
         method: 'POST',
         headers: {

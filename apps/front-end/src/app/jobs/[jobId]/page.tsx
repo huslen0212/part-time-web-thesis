@@ -72,6 +72,7 @@ function formatDate(dateString: string) {
   return `${formattedDate} ${formattedTime}`;
 }
 
+// UI deer neg info item
 function InfoItem({
   icon,
   label,
@@ -109,7 +110,9 @@ export default function JobDetailPage() {
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedWorkers, setSelectedWorkers] = useState(1);
 
+  // huselt ilgeeh function
   const handleSendRequest = async (workerCount: number) => {
+    // workerCount ni user songoson ajilchdiin too, ene toog backend-s shalgana
     const clamped = Math.max(
       1,
       Math.min(workerCount, job?.numberOfWorker || 1),
@@ -121,6 +124,7 @@ export default function JobDetailPage() {
     }
 
     try {
+      // backend ruu request ilgeene
       const res = await fetch(`${API_URL}/requests`, {
         method: 'POST',
         headers: {

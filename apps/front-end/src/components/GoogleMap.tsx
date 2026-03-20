@@ -3,22 +3,26 @@
 import { useState, useCallback } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
+// Google Map component, user map deer darj gazar songohod lat, lng, address-g parent component-ruu damjuulna
 type Props = {
   onSelectLocation: (lat: number, lng: number, address: string) => void;
 };
 
+// Map container style
 const containerStyle: React.CSSProperties = {
   width: '100%',
   height: '400px',
   borderRadius: '8px',
 };
 
+// Map-iin default center point (Ulaanbaatar)
 const defaultCenter: google.maps.LatLngLiteral = {
   lat: 47.9184,
   lng: 106.9177,
 };
 
 export default function GoogleMapComponent({ onSelectLocation }: Props) {
+  // Map deer darj gazar songohod lat, lng, address-g parent component-ruu damjuulna
   const [markerPosition, setMarkerPosition] =
     useState<google.maps.LatLngLiteral | null>(null);
 
@@ -27,6 +31,7 @@ export default function GoogleMapComponent({ onSelectLocation }: Props) {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   });
 
+  // Map deer darj gazar songohod lat, lng, address-g parent component-ruu damjuulna
   const handleMapClick = useCallback(
     (event: google.maps.MapMouseEvent) => {
       if (!event.latLng) return;

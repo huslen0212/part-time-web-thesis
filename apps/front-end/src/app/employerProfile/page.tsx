@@ -67,6 +67,7 @@ type JwtPayload = {
   userName: string;
 };
 
+// JWT token decode hiih function
 function decodeToken(token: string): JwtPayload | null {
   try {
     return JSON.parse(atob(token.split('.')[1]));
@@ -75,6 +76,7 @@ function decodeToken(token: string): JwtPayload | null {
   }
 }
 
+// ognoo formatlah function
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('mn-MN', {
     year: 'numeric',
@@ -83,6 +85,7 @@ function formatDate(dateString: string) {
   });
 }
 
+// ognoo, tsagiin formatlah function
 function formatDateTime(dateString: string) {
   const date = new Date(dateString);
   return (
@@ -101,6 +104,7 @@ function formatDateTime(dateString: string) {
 }
 
 export default function EmployerProfilePage() {
+  // Profile, role, loading state
   const [profile, setProfile] = useState<EmployerProfile | null>(null);
   const [role, setRole] = useState<'EMPLOYER' | 'JOB_SEEKER' | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,6 +119,7 @@ export default function EmployerProfilePage() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // employer-iin profile-iig backend-s avna
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -125,6 +130,7 @@ export default function EmployerProfilePage() {
     const decoded = decodeToken(token);
     if (decoded) setRole(decoded.role);
 
+    // backend-s profile-iig avna
     fetch(`${API_URL}/employer`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -141,6 +147,7 @@ export default function EmployerProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // profile-iin medeelliig backend ruu shinechleh function
   const handleSave = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -204,7 +211,7 @@ export default function EmployerProfilePage() {
     });
   }, [profile, timeFilter, searchQuery]);
 
-  // Category chips
+  // Category
   const categories = useMemo(() => {
     if (!profile) return [];
     const map: Record<string, number> = {};
