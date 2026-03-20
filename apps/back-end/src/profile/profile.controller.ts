@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
+// GET /profile
 export const getMyProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = req.user;
 
@@ -10,6 +11,7 @@ export const getMyProfile = async (req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
+  // job seeker-iin profile-iig DB-s avna
   const profile = await prisma.jobSeeker.findUnique({
     where: { jobseekerId: user.userId },
     include: {
@@ -22,6 +24,7 @@ export const getMyProfile = async (req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
+  // frontend ruu yvuulah data
   res.json({
     email: profile.user.email,
     userName: profile.userName,
@@ -32,6 +35,7 @@ export const getMyProfile = async (req: AuthRequest, res: Response): Promise<voi
   });
 };
 
+// PATCH /profile
 export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = req.user;
   const { email, userName, phoneNumber, birthDate, gender, address } = req.body;
@@ -41,6 +45,7 @@ export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<
     return;
   }
 
+  // job seeker-iin profile-iig shinechlene
   await prisma.jobSeeker.update({
     where: { jobseekerId: user.userId },
     data: {

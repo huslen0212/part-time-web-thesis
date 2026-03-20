@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_for_diplom';
 
+// AuthRequest interface-g Request-s urgeljluuleh
 export interface AuthRequest extends Request {
   user?: {
     userId: number;
@@ -11,6 +12,7 @@ export interface AuthRequest extends Request {
   };
 }
 
+// token shalgah middleware
 export const authenticate = (
   req: AuthRequest,
   res: Response,

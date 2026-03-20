@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
+// GET /notifications
 export const getMyNotifications = async (
   req: AuthRequest,
   res: Response
@@ -12,6 +13,7 @@ export const getMyNotifications = async (
       return;
     }
 
+    // tuhain user-iin notification-uudiig avna
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user.userId },
       orderBy: { createdAt: 'desc' },
@@ -24,6 +26,7 @@ export const getMyNotifications = async (
   }
 };
 
+// PATCH /notifications/:id/read
 export const markNotificationRead = async (
   req: AuthRequest,
   res: Response
@@ -31,6 +34,7 @@ export const markNotificationRead = async (
   try {
     const { id } = req.params;
 
+    // tuhain notification baigaa esehiig shalgana
     await prisma.notification.update({
       where: { notificationId: Number(id) },
       data: { isRead: true },

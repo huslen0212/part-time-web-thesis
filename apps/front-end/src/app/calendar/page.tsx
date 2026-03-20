@@ -29,7 +29,7 @@ import {
 const API_URL = 'http://localhost:3001';
 
 /* ================= TYPES ================= */
-
+// backend-aas irj bui job object
 interface ApiJob {
   jobId: number;
   title: string;
@@ -37,11 +37,12 @@ interface ApiJob {
   location: string;
   category: string;
   salary: number;
-  startTime: string; // ISO string
-  endTime: string; // ISO string
+  startTime: string;
+  endTime: string;
   employer: { employerName: string | null };
 }
 
+// calendar deer haragdah event
 interface EventBox {
   id: number;
   title: string;
@@ -53,29 +54,30 @@ interface EventBox {
   startLabel: string;
   endLabel: string;
   dayIndex: number;
-  top: number; // float hour (e.g. 9.5 = 09:30)
+  top: number;
   bottom: number;
   overlapPercentage: number;
   fitScore: number;
 }
 
-/* ================= HELPERS ================= */
-
+// Date → float tsag bolgoh (jishee 13:30 → 13.5)
 function dateToFloat(d: Date): number {
   return d.getHours() + d.getMinutes() / 60;
 }
 
+// "HH:mm" → float bolgoh
 function hhmmToFloat(t: string): number {
   const [h, m] = t.split(':').map(Number);
   return h + m / 60;
 }
-
+// float → "HH:mm" bolgoh
 function floatToHHMM(f: number): string {
   const h = Math.floor(f);
   const m = Math.round((f - h) * 60);
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// user tsag + job tsagiin davhtsal bodoh
 function calculateOverlap(js: number, je: number, us: number, ue: number) {
   const start = Math.max(js, us);
   const end = Math.min(je, ue);
@@ -84,6 +86,7 @@ function calculateOverlap(js: number, je: number, us: number, ue: number) {
   return ((overlap / (je - js)) * 100 + (overlap / (ue - us)) * 100) / 2;
 }
 
+// her sain taarj bga score bodno
 function calculateFitScore(js: number, je: number, us: number, ue: number) {
   let score = (calculateOverlap(js, je, us, ue) / 100) * 40;
   if (js >= us && je <= ue) score += 20;
@@ -94,6 +97,7 @@ function calculateFitScore(js: number, je: number, us: number, ue: number) {
   return Math.round(score);
 }
 
+// davhtsaj bui event-uudiig group bolgono
 function groupOverlappingEvents(events: EventBox[]) {
   const sorted = [...events].sort((a, b) => a.top - b.top);
   const groups: EventBox[][] = [];
@@ -134,7 +138,7 @@ const dayList = [
   'Ням',
 ];
 
-/** Энэ долоо хоногийн Даваа гарагийн огноог буцаана */
+// ene doloo honogiin davaa oloh
 function getMondayOfCurrentWeek(): Date {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -145,7 +149,7 @@ function getMondayOfCurrentWeek(): Date {
   return monday;
 }
 
-/** dayIndex (0=Mon..6=Sun) → энэ долоо хоногийн тухайн өдрийн Date */
+// songoson udriin bodit ognoo oloh
 function getDateOfThisWeek(dayIndex: number): Date {
   const monday = getMondayOfCurrentWeek();
   const d = new Date(monday);
@@ -155,8 +159,6 @@ function getDateOfThisWeek(dayIndex: number): Date {
 
 const ROW_H = 48;
 
-/* ================= COMPONENT ================= */
-
 export default function CalendarPage() {
   const router = useRouter();
   const [checkedAuth, setCheckedAuth] = useState(false);
@@ -164,6 +166,7 @@ export default function CalendarPage() {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
 
+  // user oruulsan tsag
   const [inputs, setInputs] = useState<
     { day: string; start: string; end: string; type: string }[]
   >(() => {
@@ -179,6 +182,7 @@ export default function CalendarPage() {
     }
   });
 
+  // oldson ajluud
   const [events, setEvents] = useState<EventBox[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -199,16 +203,17 @@ export default function CalendarPage() {
     setCheckedAuth(true);
   }, [router]);
 
-  /* Persist inputs & events to localStorage */
+  // inputs hadgalan
   useEffect(() => {
     localStorage.setItem('calendar_inputs', JSON.stringify(inputs));
   }, [inputs]);
 
+  // events hadgalna
   useEffect(() => {
     localStorage.setItem('calendar_events', JSON.stringify(events));
   }, [events]);
 
-  /* Fetch all jobs from backend */
+  // backend-aas job tatna
   useEffect(() => {
     if (!checkedAuth) return;
     const token = localStorage.getItem('token');
@@ -263,7 +268,7 @@ export default function CalendarPage() {
         const jobDayIndex = jsDayToIndex[start.getDay()];
         if (jobDayIndex !== targetDayIndex) return;
 
-        // Зөвхөн энэ долоо хоногийн ажлуудыг л харуулна
+        // ene doloo honogiin ajil uu гэдгийг шалгана
         const targetDate = getDateOfThisWeek(targetDayIndex);
         if (start.toDateString() !== targetDate.toDateString()) return;
 
@@ -274,6 +279,7 @@ export default function CalendarPage() {
         const je = dateToFloat(end);
 
         const overlap = calculateOverlap(js, je, us, ue);
+        // taarah huvi baga bvl hasna
         if (overlap < 10) return;
 
         result.push({
@@ -306,7 +312,7 @@ export default function CalendarPage() {
         {/* ── Page Header ── */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            Ажлын хуваарь зохицуулагч
+            Хуваарь үүсгэх
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
             Өөрийн боломжит цагт таарах ажлуудыг хялбархан олоорой.

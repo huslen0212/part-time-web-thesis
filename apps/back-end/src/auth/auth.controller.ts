@@ -7,10 +7,12 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { user, jobSeeker, employer } = req.body;
 
+    // required field shalgaj bn
     if (!user?.email || !user?.password || !user?.role) {
       return res.status(400).json({ message: 'Мэдээлэл дутуу' });
     }
 
+    //email davhtsaj baigaa esehiig shalgana
     const existingUser = await prisma.user.findUnique({
       where: { email: user.email },
     });
@@ -19,6 +21,7 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'И-мэйл аль хэдийн бүртгэлтэй' });
     }
 
+    // transaction ashiglaad user bolon profile medeelliig neg dor hadgalj bn
     const result = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
         data: {
@@ -28,6 +31,7 @@ export const register = async (req: Request, res: Response) => {
         },
       });
 
+      // role = JOB_SEEKER bol jobSeeker table-d insert
       if (user.role === 'JOB_SEEKER') {
         await tx.jobSeeker.create({
           data: {
@@ -41,6 +45,7 @@ export const register = async (req: Request, res: Response) => {
         });
       }
 
+      // role = EMPLOYER bol employer table-d insert
       if (user.role === 'EMPLOYER') {
         await tx.employer.create({
           data: {
@@ -71,9 +76,10 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email эсвэл password дутуу' });
+      return res.status(400).json({ message: 'Бүх талбарыг бөглөнө үү' });
     }
 
+     // user + related table (jobSeeker/employer) hamt haina
     const user = await prisma.user.findUnique({
       where: { email },
       include: {

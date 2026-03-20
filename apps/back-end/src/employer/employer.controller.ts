@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
+//ajil olgogchiin medeelel avah
 export const getEmployerProfile = async (
   req: AuthRequest,
   res: Response,
@@ -13,12 +14,14 @@ export const getEmployerProfile = async (
     return;
   }
 
+  // employer profile-iig  DB tatna
   const profile = await prisma.employer.findUnique({
     where: { employerId: user.userId },
     include: {
       user: {
         select: { email: true, createdAt: true },
       },
+      // tuhain employeriin oruulsan ajiluud
       jobs: {
         orderBy: { createdAt: 'desc' },
         select: {
@@ -30,6 +33,7 @@ export const getEmployerProfile = async (
           startTime: true,
           endTime: true,
           createdAt: true,
+          // ajil buriin request-iin toog avna
           _count: { select: { requests: true } },
         },
       },
@@ -41,6 +45,7 @@ export const getEmployerProfile = async (
     return;
   }
 
+  //frontend ruu yvuulah data
   res.json({
     employerName: profile.employerName,
     phoneNumber: profile.phoneNumber,
@@ -51,6 +56,7 @@ export const getEmployerProfile = async (
   });
 };
 
+// employer profile zasah
 export const updateEmployerProfile = async (
   req: AuthRequest,
   res: Response,
@@ -63,9 +69,11 @@ export const updateEmployerProfile = async (
     return;
   }
 
+  // employer table update
   await prisma.employer.update({
     where: { employerId: user.userId },
     data: {
+      // value bvl update hiigd, baihgui bol huucin heveer ni uldeene
       employerName: employerName ?? undefined,
       phoneNumber: phoneNumber ?? undefined,
     },

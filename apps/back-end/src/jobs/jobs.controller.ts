@@ -9,6 +9,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
     }
 
+    // request body-s data avna
     const {
       title,
       description,
@@ -23,6 +24,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       numberOfWorker,
     } = req.body;
 
+    // input validation
     if (
       !title ||
       !description ||
@@ -36,16 +38,19 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Мэдээлэл дутуу' });
     }
 
+    // salary bolon numberOfWorker 0-s ih baih ystoi
     if (Number(salary) <= 0) {
       return res.status(400).json({ message: 'Цалин буруу утгатай' });
     }
 
+    //duusah tsag ehleh tsagaas hoish bh ystoi
     if (new Date(endTime) <= new Date(startTime)) {
       return res.status(400).json({
         message: 'Дуусах цаг эхлэх цагаас хойш байх ёстой',
       });
     }
 
+    // job table-d hadgalna
     const job = await prisma.job.create({
       data: {
         title,
@@ -73,6 +78,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
 // GET /jobs
 export const getJobs = async (_req: Request, res: Response) => {
   try {
+    // buh ajluudiig employer-iin medeelleer hamt avna
     const jobs = await prisma.job.findMany({
       include: {
         employer: {
@@ -100,6 +106,7 @@ export const getJobById = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Job ID буруу' });
     }
 
+    // job-iig employer-iin medeelleer hamt avna
     const job = await prisma.job.findUnique({
       where: { jobId },
       include: {
@@ -129,6 +136,7 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
     }
 
+    // tuhain employer-iin ajluudiig avna
     const jobs = await prisma.job.findMany({
       where: {
         employerId: req.user.userId,
@@ -164,11 +172,13 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
     }
 
+    // jobId-g params-s avna
     const jobId = Number(req.params.id);
     if (isNaN(jobId)) {
       return res.status(400).json({ message: 'Job ID буруу' });
     }
 
+    // tuhain jobId-tei, template status-tai job baigaa esehiig shalgana
     const template = await prisma.job.findFirst({
       where: {
         jobId,
@@ -191,7 +201,7 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
     });
 
     return res.json({
-      message: 'Template амжилттай устгагдлаа (soft)',
+      message: 'Template амжилттай устгагдлаа',
     });
   } catch (error) {
     console.error(error);
@@ -199,12 +209,15 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// GET /jobs/nearby?lat=..&lng=..&radius=..
 export const getNearbyJobs = async (req: Request, res: Response) => {
   try {
+    // lat, lng, radius query parameter-s avna
     const latParam = req.query.lat as string;
     const lngParam = req.query.lng as string;
     const radiusParam = req.query.radius as string;
 
+    // lat, lng zaaval baih ystoi, radius bolgoniig 500m gej avna
     const lat = parseFloat(latParam);
     const lng = parseFloat(lngParam);
     const radius = radiusParam ? parseFloat(radiusParam) : 500;
@@ -213,6 +226,7 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'lat/lng required' });
     }
 
+    //// raw SQL ashiglaj zaigaar shuune
     const jobs = await prisma.$queryRawUnsafe(`
       SELECT *
       FROM (

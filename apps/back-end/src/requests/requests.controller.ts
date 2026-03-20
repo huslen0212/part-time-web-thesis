@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
+// POST /requests
 export const createRequest = async (
   req: AuthRequest,
   res: Response
@@ -21,9 +22,10 @@ export const createRequest = async (
         .json({ message: 'Зөвхөн ажил хайгч хүсэлт илгээнэ' });
       return;
     }
-
+    
     const jobSeekerId = user.userId;
 
+    //ali hediin huselt ilgeesen esehiig shalgana
     const exists = await prisma.request.findUnique({
       where: {
         jobSeekerId_jobId: {
@@ -40,6 +42,7 @@ export const createRequest = async (
       return;
     }
 
+  // request-iig DB-s hadgalna
   const request = await prisma.request.create({
     data: {
       jobSeekerId,
@@ -51,7 +54,7 @@ export const createRequest = async (
     },
   });
 
-  // Employer-д notification
+  // Employer-d notification
   await prisma.notification.create({
     data: {
       userId: request.job.employerId,
@@ -68,6 +71,7 @@ export const createRequest = async (
   }
 };
 
+// GET /requests/employer
 export const getEmployerRequests = async (
   req: AuthRequest,
   res: Response
@@ -82,6 +86,7 @@ export const getEmployerRequests = async (
 
     const employerId = user.userId;
 
+    // tuhain employer-iin ajluudiin request-uudiig avna
     const requests = await prisma.request.findMany({
       where: {
         job: {
