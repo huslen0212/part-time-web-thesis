@@ -57,7 +57,6 @@ interface EventBox {
   top: number;
   bottom: number;
   overlapPercentage: number;
-  fitScore: number;
 }
 
 // Date → float tsag bolgoh (jishee 13:30 → 13.5)
@@ -83,18 +82,11 @@ function calculateOverlap(js: number, je: number, us: number, ue: number) {
   const end = Math.min(je, ue);
   if (start >= end) return 0;
   const overlap = end - start;
-  return ((overlap / (je - js)) * 100 + (overlap / (ue - us)) * 100) / 2;
-}
 
-// her sain taarj bga score bodno
-function calculateFitScore(js: number, je: number, us: number, ue: number) {
-  let score = (calculateOverlap(js, je, us, ue) / 100) * 40;
-  if (js >= us && je <= ue) score += 20;
-  if (Math.abs(js - us) < 0.5) score += 10;
-  if (Math.abs(je - ue) < 0.5) score += 10;
-  const diff = Math.abs(je - js - (ue - us));
-  score += Math.max(0, 20 - diff * 5);
-  return Math.round(score);
+  const jobPct = (overlap / (je - js)) * 100;
+  const userPct = (overlap / (ue - us)) * 100;
+
+  return (jobPct + userPct) / 2;
 }
 
 // davhtsaj bui event-uudiig group bolgono
@@ -296,7 +288,6 @@ export default function CalendarPage() {
           top: js,
           bottom: je,
           overlapPercentage: overlap,
-          fitScore: calculateFitScore(js, je, us, ue),
         });
       });
     });

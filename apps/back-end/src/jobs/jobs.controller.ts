@@ -226,13 +226,13 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'lat/lng required' });
     }
 
-    //// raw SQL ashiglaj zaigaar shuune
+    // raw SQL ashiglaj zaigaar shuune
     const jobs = await prisma.$queryRawUnsafe(`
       SELECT *
       FROM (
         SELECT *,
           (
-            6371000 * acos(
+            6371000 * acos( 
               cos(radians(${lat}))
               * cos(radians("latitude"))
               * cos(radians("longitude") - radians(${lng}))
