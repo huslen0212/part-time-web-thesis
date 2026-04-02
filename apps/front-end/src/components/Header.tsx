@@ -90,19 +90,26 @@ export default function Header() {
   }, [pathname]);
 
   useEffect(() => {
-    if (!user) return;
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetch('http://localhost:3001/notifications', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data: Notification[]) => {
-        setNotifications(data);
-        setUnreadCount(data.filter((n) => !n.isRead).length);
+    const fetchNotifications = () => {
+      fetch('http://localhost:3001/notifications', {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(console.error);
+        .then((r) => r.json())
+        .then((data: Notification[]) => {
+          setNotifications(data);
+          setUnreadCount(data.filter((n) => !n.isRead).length);
+        })
+        .catch(console.error);
+    };
+
+    fetchNotifications(); // эхний fetch
+
+    const interval = setInterval(fetchNotifications, 1000); // 5 секунд тутам
+
+    return () => clearInterval(interval);
   }, [user]);
 
   const markAsRead = async (notificationId: number) => {

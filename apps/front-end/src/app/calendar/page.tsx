@@ -272,7 +272,7 @@ export default function CalendarPage() {
 
         const overlap = calculateOverlap(js, je, us, ue);
         // taarah huvi baga bvl hasna
-        if (overlap < 10) return;
+        if (overlap < 90) return;
 
         result.push({
           id: job.jobId,
