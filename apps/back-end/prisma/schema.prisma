@@ -106,7 +106,6 @@ model Request {
   requestId   Int           @id @default(autoincrement())
   status      RequestStatus @default(PENDING)
   createdAt   DateTime      @default(now())
-
   workerCount Int @default(1)
 
   jobSeekerId Int
@@ -125,6 +124,7 @@ model Rating {
   toUserId   Int
   jobId      Int
   score      Int
+  comment     String?
 
   createdAt DateTime @default(now())
 

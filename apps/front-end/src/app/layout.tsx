@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import { MantineProvider } from '@mantine/core';
+import RatingModal from '@/components/RatingModal';
 
 export const metadata = {
   title: 'Welcome to ',
@@ -19,6 +20,7 @@ export default function RootLayout({
       <body>
         <MantineProvider>
           {children}
+          <RatingModal />
           <Toaster richColors position="bottom-right" />
         </MantineProvider>
       </body>
