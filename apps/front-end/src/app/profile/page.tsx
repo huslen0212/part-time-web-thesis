@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
+import { Rating } from '@mui/material';
 import {
   Popover,
   PopoverContent,
@@ -76,6 +77,11 @@ type MyRequest = {
   };
 };
 
+type UserRating = {
+  average: number | null;
+  count: number;
+};
+
 type ApprovedFilter = 'all' | 'upcoming' | 'past';
 
 const STATUS_CONFIG = {
@@ -120,6 +126,10 @@ export default function ProfilePage() {
     'REJECTED',
   );
   const [showOther, setShowOther] = useState(false);
+  const [userRating, setUserRating] = useState<UserRating>({
+    average: null,
+    count: 0,
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -132,8 +142,9 @@ export default function ProfilePage() {
     Promise.all([
       fetch(`${API_URL}/profile`, { headers }).then((r) => r.json()),
       fetch(`${API_URL}/requests/me`, { headers }).then((r) => r.json()),
+      fetch(`${API_URL}/ratings/me`, { headers }).then((r) => r.json()),
     ])
-      .then(([profileData, requestData]) => {
+      .then(([profileData, requestData, ratingData]) => {
         setProfile(profileData);
         setEditProfile({
           email: profileData.email || '',
@@ -146,6 +157,7 @@ export default function ProfilePage() {
           address: profileData.address || '',
         });
         setRequests(requestData);
+        setUserRating(ratingData);
       })
       .catch(() => toast.error('Мэдээлэл ачаалж чадсангүй'))
       .finally(() => setLoading(false));
@@ -224,6 +236,21 @@ export default function ProfilePage() {
                   </p>
                   <p className="text-xs text-zinc-400 mt-0.5 truncate max-w-full">
                     {profile.email || '—'}
+                  </p>
+                </div>
+
+                {/* Rating */}
+                <div className="flex flex-col items-center gap-1">
+                  <Rating
+                    value={userRating.average ?? 0}
+                    precision={0.1}
+                    readOnly
+                    size="small"
+                  />
+                  <p className="text-xs text-zinc-400">
+                    {userRating.average !== null
+                      ? `${userRating.average.toFixed(1)} (${userRating.count} үнэлгээ)`
+                      : 'Үнэлгээ байхгүй'}
                   </p>
                 </div>
 

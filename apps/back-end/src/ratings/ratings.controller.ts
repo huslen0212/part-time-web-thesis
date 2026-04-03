@@ -160,3 +160,37 @@ export const getPendingRatings = async (
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const getUserRating = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const ratings = await prisma.rating.findMany({
+      where: { toUserId: userId },
+      select: { score: true, comment: true, fromUserId: true },
+    });
+
+    const avg =
+      ratings.length > 0
+        ? ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length
+        : null;
+
+    res.json({
+      average: avg ? Math.round(avg * 10) / 10 : null,
+      count: ratings.length,
+      ratings,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
