@@ -103,6 +103,7 @@ export const getEmployerRequests = async (
         },
         jobSeeker: {
           select: {
+            jobseekerId: true,
             userName: true,
             phoneNumber: true,
           },

@@ -12,6 +12,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
+import Link from 'next/link';
 import {
   User,
   Phone,
@@ -39,6 +40,7 @@ type EmployerRequest = {
     description: string;
   };
   jobSeeker: {
+    jobseekerId: number;
     userName?: string | null;
     phoneNumber?: string | null;
   };
@@ -387,9 +389,13 @@ function RequestCard({
             <div className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center shrink-0">
               <User size={11} className="text-zinc-500" />
             </div>
-            <span className="font-medium">
+            <Link
+              href={`/jobseeker/${r.jobSeeker.jobseekerId}`}
+              className="font-medium hover:text-[#2872a1] hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
               {r.jobSeeker.userName || 'Нэргүй'}
-            </span>
+            </Link>
             <span className="text-zinc-400">·</span>
             <span className="flex items-center gap-1 text-zinc-500">
               <Users size={11} />

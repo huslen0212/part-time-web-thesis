@@ -56,6 +56,66 @@ export const getEmployerProfile = async (
   });
 };
 
+// GET /employer/:id  →  public
+export const getPublicEmployerProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ message: 'Invalid id' }); return; }
+
+  const profile = await prisma.employer.findUnique({
+    where: { employerId: id },
+    include: {
+      jobs: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          jobId: true,
+          title: true,
+          location: true,
+          category: true,
+          salary: true,
+          startTime: true,
+          endTime: true,
+          createdAt: true,
+          _count: { select: { requests: true } },
+        },
+      },
+    },
+  });
+
+  if (!profile) { res.status(404).json({ message: 'Олдсонгүй' }); return; }
+
+  const ratings = await prisma.rating.findMany({
+    where: { toUserId: id },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      job: { select: { title: true } },
+      fromUser: {
+        include: {
+          jobSeeker: { select: { userName: true } },
+        },
+      },
+    },
+  });
+
+  const avg = ratings.length > 0
+    ? ratings.reduce((s, r) => s + r.score, 0) / ratings.length
+    : null;
+
+  res.json({
+    employerName: profile.employerName,
+    phoneNumber: profile.phoneNumber,
+    createdAt: profile.createdAt,
+    jobs: profile.jobs,
+    rating: {
+      average: avg ? Math.round(avg * 10) / 10 : null,
+      count: ratings.length,
+      items: ratings,
+    },
+  });
+};
+
 // employer profile zasah
 export const updateEmployerProfile = async (
   req: AuthRequest,

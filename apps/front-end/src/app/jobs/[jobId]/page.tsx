@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ type Job = {
   latitude?: number | null;
   longitude?: number | null;
   numberOfWorker: number;
-  employer?: { employerName?: string | null };
+  employer?: { employerId?: number; employerName?: string | null };
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -243,7 +244,16 @@ export default function JobDetailPage() {
                 </div>
                 <div className="flex items-center gap-1.5 text-sm text-zinc-400">
                   <Building2 size={14} />
-                  <span>{job.employer?.employerName || 'Байгууллага'}</span>
+                  {job.employer?.employerId ? (
+                    <Link
+                      href={`/employer/${job.employer.employerId}`}
+                      className="hover:text-[#2872a1] hover:underline transition-colors"
+                    >
+                      {job.employer.employerName || 'Байгууллага'}
+                    </Link>
+                  ) : (
+                    <span>{job.employer?.employerName || 'Байгууллага'}</span>
+                  )}
                 </div>
               </div>
 

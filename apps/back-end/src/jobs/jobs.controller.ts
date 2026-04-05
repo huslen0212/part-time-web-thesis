@@ -112,7 +112,9 @@ export const getJobById = async (req: Request, res: Response) => {
       include: {
         employer: {
           select: {
+            employerId: true,
             employerName: true,
+            phoneNumber: true,
           },
         },
       },
