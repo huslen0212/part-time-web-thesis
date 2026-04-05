@@ -10,10 +10,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Rating } from '@mui/material';
 import { toast } from 'sonner';
 import {
   Mail,
@@ -27,6 +34,7 @@ import {
   Banknote,
   CalendarDays,
   Briefcase,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -67,7 +75,22 @@ type JwtPayload = {
   userName: string;
 };
 
-// JWT token decode hiih function
+type RatingDetail = {
+  score: number;
+  comment: string | null;
+  createdAt: string;
+  job?: { title?: string | null } | null;
+  fromUser?: {
+    jobSeeker?: { userName?: string | null } | null;
+    employer?: { employerName?: string | null } | null;
+  };
+};
+
+type UserRating = {
+  average: number | null;
+  count: number;
+};
+
 function decodeToken(token: string): JwtPayload | null {
   try {
     return JSON.parse(atob(token.split('.')[1]));
@@ -76,7 +99,6 @@ function decodeToken(token: string): JwtPayload | null {
   }
 }
 
-// ognoo formatlah function
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('mn-MN', {
     year: 'numeric',
@@ -85,7 +107,6 @@ function formatDate(dateString: string) {
   });
 }
 
-// ognoo, tsagiin formatlah function
 function formatDateTime(dateString: string) {
   const date = new Date(dateString);
   return (
@@ -103,8 +124,25 @@ function formatDateTime(dateString: string) {
   );
 }
 
+function StarRow({ score }: { score: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star
+          key={s}
+          size={12}
+          className={cn(
+            s <= score
+              ? 'text-amber-400 fill-amber-400'
+              : 'text-zinc-200 fill-zinc-200',
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function EmployerProfilePage() {
-  // Profile, role, loading state
   const [profile, setProfile] = useState<EmployerProfile | null>(null);
   const [role, setRole] = useState<'EMPLOYER' | 'JOB_SEEKER' | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,11 +153,20 @@ export default function EmployerProfilePage() {
     email: '',
   });
 
-  // Filter state
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // employer-iin profile-iig backend-s avna
+  // Үнэлгээний state
+  const [userRating, setUserRating] = useState<UserRating>({
+    average: null,
+    count: 0,
+  });
+  const [ratingDialog, setRatingDialog] = useState<{
+    open: boolean;
+    ratings: RatingDetail[];
+    loading: boolean;
+  }>({ open: false, ratings: [], loading: false });
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -130,24 +177,46 @@ export default function EmployerProfilePage() {
     const decoded = decodeToken(token);
     if (decoded) setRole(decoded.role);
 
-    // backend-s profile-iig avna
-    fetch(`${API_URL}/employer`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data: EmployerProfile) => {
-        setProfile(data);
+    const headers = { Authorization: `Bearer ${token}` };
+
+    Promise.all([
+      fetch(`${API_URL}/employer`, { headers }).then((r) => r.json()),
+      fetch(`${API_URL}/ratings/me`, { headers }).then((r) => r.json()),
+    ])
+      .then(([profileData, ratingData]) => {
+        setProfile(profileData);
         setEditForm({
-          employerName: data.employerName || '',
-          phoneNumber: data.phoneNumber || '',
-          email: data.email || '',
+          employerName: profileData.employerName || '',
+          phoneNumber: profileData.phoneNumber || '',
+          email: profileData.email || '',
         });
+        setUserRating(ratingData);
       })
       .catch(() => toast.error('Мэдээлэл ачаалж чадсангүй'))
       .finally(() => setLoading(false));
   }, []);
 
-  // profile-iin medeelliig backend ruu shinechleh function
+  // Бүх үнэлгээний дэлгэрэнгүй татах
+  const openRatingDialog = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setRatingDialog({ open: true, ratings: [], loading: true });
+    try {
+      const res = await fetch(`${API_URL}/ratings/me/details`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setRatingDialog({
+        open: true,
+        ratings: Array.isArray(data) ? data : (data.ratings ?? []),
+        loading: false,
+      });
+    } catch {
+      toast.error('Үнэлгээ ачаалж чадсангүй');
+      setRatingDialog((p) => ({ ...p, loading: false }));
+    }
+  };
+
   const handleSave = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -162,16 +231,7 @@ export default function EmployerProfilePage() {
         body: JSON.stringify(editForm),
       });
       if (res.ok) {
-        setProfile((prev) =>
-          prev
-            ? {
-                ...prev,
-                employerName: editForm.employerName,
-                phoneNumber: editForm.phoneNumber,
-                email: editForm.email,
-              }
-            : prev,
-        );
+        setProfile((prev) => (prev ? { ...prev, ...editForm } : prev));
         toast.success('Амжилттай хадгалагдлаа');
       } else {
         toast.error('Хадгалах үед алдаа гарлаа');
@@ -191,7 +251,6 @@ export default function EmployerProfilePage() {
     now.getDate(),
   );
 
-  // Filtered jobs
   const filteredJobs = useMemo(() => {
     if (!profile) return [];
     return profile.jobs.filter((job) => {
@@ -211,7 +270,6 @@ export default function EmployerProfilePage() {
     });
   }, [profile, timeFilter, searchQuery]);
 
-  // Category
   const categories = useMemo(() => {
     if (!profile) return [];
     const map: Record<string, number> = {};
@@ -248,17 +306,45 @@ export default function EmployerProfilePage() {
           <div className="flex flex-col gap-4">
             <Card className="shadow-none rounded-2xl border-zinc-200 overflow-hidden">
               <CardContent className="p-0">
-                {/* Banner */}
                 <div className="h-16" />
 
-                {/* Employer name */}
-                <div className="flex flex-col items-center -mt-6 pb-6 px-6">
+                {/* Нэр, имэйл */}
+                <div className="flex flex-col items-center -mt-6 pb-4 px-6">
                   <p className="font-bold text-zinc-900 mt-3 text-center">
                     {profile.employerName || '—'}
                   </p>
                   <p className="text-xs text-zinc-400 mt-0.5 truncate max-w-full text-center">
                     {profile.email}
                   </p>
+                </div>
+
+                {/* ── Үнэлгээ ── */}
+                <div className="flex flex-col items-center gap-1 pb-4">
+                  <Rating
+                    value={userRating.average ?? 0}
+                    precision={0.1}
+                    readOnly
+                    size="small"
+                  />
+                  <p className="text-xs text-zinc-400">
+                    {userRating.average !== null
+                      ? `${userRating.average.toFixed(1)} (${userRating.count} үнэлгээ)`
+                      : 'Үнэлгээ байхгүй'}
+                  </p>
+
+                  {/* Бүх үнэлгээг харах товч */}
+                  {userRating.count > 0 && (
+                    <button
+                      onClick={openRatingDialog}
+                      className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
+                    >
+                      <Star
+                        size={11}
+                        className="text-amber-400 fill-amber-400"
+                      />
+                      Бүх үнэлгээг харах
+                    </button>
+                  )}
                 </div>
 
                 <Separator />
@@ -324,7 +410,7 @@ export default function EmployerProfilePage() {
                   </>
                 )}
 
-                {/* Edit — зөвхөн EMPLOYER */}
+                {/* Edit */}
                 {isEmployer && (
                   <div className="px-5 pb-5">
                     <Popover>
@@ -383,14 +469,11 @@ export default function EmployerProfilePage() {
 
           {/* ── Right: Jobs ── */}
           <div className="flex flex-col gap-5">
-            {/* Header */}
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-zinc-900">Ажлын зарууд</h2>
             </div>
 
-            {/* Filter bar */}
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Time tabs */}
               <div className="flex gap-1 p-1 bg-zinc-100 rounded-xl shrink-0">
                 {(
                   [
@@ -424,14 +507,12 @@ export default function EmployerProfilePage() {
               </div>
             </div>
 
-            {/* Results count */}
             {(timeFilter !== 'all' || searchQuery) && (
               <p className="text-xs text-zinc-400 -mt-1">
                 {filteredJobs.length} зар олдлоо
               </p>
             )}
 
-            {/* Job grid */}
             {filteredJobs.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-zinc-300 gap-2 border-2 border-dashed border-zinc-200 rounded-2xl">
                 <Briefcase size={28} />
@@ -466,9 +547,7 @@ export default function EmployerProfilePage() {
                             {job.category}
                           </span>
                         </div>
-
                         <Separator />
-
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5 text-xs text-zinc-500">
                             <MapPin
@@ -517,6 +596,94 @@ export default function EmployerProfilePage() {
       </main>
 
       <Footer />
+
+      {/* ── Үнэлгээний Dialog ── */}
+      <Dialog
+        open={ratingDialog.open}
+        onOpenChange={(o) => setRatingDialog((p) => ({ ...p, open: o }))}
+      >
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-zinc-100">
+            <DialogTitle className="text-base font-semibold text-zinc-900">
+              Миний үнэлгээнүүд
+            </DialogTitle>
+            <div className="flex items-center gap-2 mt-1">
+              <Rating
+                value={userRating.average ?? 0}
+                precision={0.1}
+                readOnly
+                size="small"
+              />
+              <span className="text-sm font-semibold text-zinc-800">
+                {userRating.average?.toFixed(1) ?? '—'}
+              </span>
+              <span className="text-xs text-zinc-400">
+                ({userRating.count} үнэлгээ)
+              </span>
+            </div>
+          </DialogHeader>
+
+          <div className="max-h-[60vh] overflow-y-auto divide-y divide-zinc-100">
+            {ratingDialog.loading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-500 rounded-full animate-spin" />
+              </div>
+            ) : ratingDialog.ratings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-zinc-300 gap-2">
+                <Star size={24} />
+                <p className="text-xs">Үнэлгээ байхгүй</p>
+              </div>
+            ) : (
+              ratingDialog.ratings.map((r, i) => {
+                const from =
+                  r.fromUser?.jobSeeker?.userName ||
+                  r.fromUser?.employer?.employerName ||
+                  'Хэрэглэгч';
+                return (
+                  <div key={i} className="px-6 py-4 flex flex-col gap-2">
+                    {/* Хэн үнэлсэн + одод */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-zinc-700">
+                        {from}
+                      </span>
+                      <StarRow score={r.score} />
+                    </div>
+
+                    {/* Ямар ажил дээр */}
+                    {r.job?.title && (
+                      <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-100 rounded-lg px-2.5 py-1.5">
+                        <Briefcase
+                          size={11}
+                          className="text-zinc-400 shrink-0"
+                        />
+                        <span className="text-[11px] text-zinc-500 truncate">
+                          {r.job.title}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Comment */}
+                    {r.comment && (
+                      <p className="text-xs text-zinc-500 leading-relaxed">
+                        {r.comment}
+                      </p>
+                    )}
+
+                    {/* Огноо */}
+                    <p className="text-[10px] text-zinc-400">
+                      {new Date(r.createdAt).toLocaleDateString('en-US', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

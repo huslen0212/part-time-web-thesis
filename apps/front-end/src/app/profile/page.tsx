@@ -11,6 +11,12 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Rating } from '@mui/material';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -40,6 +46,8 @@ import {
   Venus,
   Home,
   Cake,
+  Star,
+  Briefcase,
 } from 'lucide-react';
 import ApprovedJobsCalendar from '@/components/ApprovedJobsCalendar';
 import { cn } from '@/lib/utils';
@@ -82,6 +90,18 @@ type UserRating = {
   count: number;
 };
 
+// Үнэлгээний дэлгэрэнгүй мэдээлэл
+type RatingDetail = {
+  score: number;
+  comment: string | null;
+  createdAt: string;
+  job?: { title?: string | null } | null;
+  fromUser?: {
+    employer?: { employerName?: string | null } | null;
+    jobSeeker?: { userName?: string | null } | null;
+  };
+};
+
 type ApprovedFilter = 'all' | 'upcoming' | 'past';
 
 const STATUS_CONFIG = {
@@ -116,6 +136,24 @@ function formatDate(dateString: string) {
   return `${formattedDate} ${formattedTime}`;
 }
 
+function StarRow({ score }: { score: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star
+          key={s}
+          size={12}
+          className={cn(
+            s <= score
+              ? 'text-amber-400 fill-amber-400'
+              : 'text-zinc-200 fill-zinc-200',
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({});
   const [editProfile, setEditProfile] = useState<Profile>({});
@@ -130,6 +168,13 @@ export default function ProfilePage() {
     average: null,
     count: 0,
   });
+
+  // Үнэлгээний dialog state
+  const [ratingDialog, setRatingDialog] = useState<{
+    open: boolean;
+    ratings: RatingDetail[];
+    loading: boolean;
+  }>({ open: false, ratings: [], loading: false });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -162,6 +207,29 @@ export default function ProfilePage() {
       .catch(() => toast.error('Мэдээлэл ачаалж чадсангүй'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Бүх үнэлгээг татах
+  const openRatingDialog = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setRatingDialog({ open: true, ratings: [], loading: true });
+
+    try {
+      const res = await fetch(`${API_URL}/ratings/me/details`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setRatingDialog({
+        open: true,
+        ratings: Array.isArray(data) ? data : (data.ratings ?? []),
+        loading: false,
+      });
+    } catch {
+      toast.error('Үнэлгээ ачаалж чадсангүй');
+      setRatingDialog((p) => ({ ...p, loading: false }));
+    }
+  };
 
   const saveProfile = async () => {
     const token = localStorage.getItem('token');
@@ -239,8 +307,8 @@ export default function ProfilePage() {
                   </p>
                 </div>
 
-                {/* Rating */}
-                <div className="flex flex-col items-center gap-1">
+                {/* ── Rating хэсэг ── */}
+                <div className="flex flex-col items-center gap-1 pb-4">
                   <Rating
                     value={userRating.average ?? 0}
                     precision={0.1}
@@ -252,7 +320,23 @@ export default function ProfilePage() {
                       ? `${userRating.average.toFixed(1)} (${userRating.count} үнэлгээ)`
                       : 'Үнэлгээ байхгүй'}
                   </p>
+
+                  {/* ── Бүх үнэлгээг харах товч ── */}
+                  {userRating.count > 0 && (
+                    <button
+                      onClick={openRatingDialog}
+                      className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
+                    >
+                      <Star
+                        size={11}
+                        className="text-amber-400 fill-amber-400"
+                      />
+                      Бүх үнэлгээг харах
+                    </button>
+                  )}
                 </div>
+
+                <Separator />
 
                 {/* Info */}
                 <div className="px-5 py-4 space-y-3">
@@ -335,8 +419,6 @@ export default function ProfilePage() {
                             />
                           </div>
                         ))}
-
-                        {/* Төрсөн огноо */}
                         <div className="space-y-1.5">
                           <Label className="text-xs font-medium text-zinc-500">
                             Төрсөн огноо
@@ -353,8 +435,6 @@ export default function ProfilePage() {
                             className="rounded-xl border-zinc-200 focus-visible:ring-[#2872A1]"
                           />
                         </div>
-
-                        {/* Хүйс */}
                         <div className="space-y-1.5">
                           <Label className="text-xs font-medium text-zinc-500">
                             Хүйс
@@ -377,7 +457,6 @@ export default function ProfilePage() {
                             </SelectContent>
                           </Select>
                         </div>
-
                         <Button
                           className="w-full rounded-xl bg-[#2872A1] hover:bg-[#2872A1]/80 mt-1"
                           onClick={saveProfile}
@@ -539,7 +618,6 @@ export default function ProfilePage() {
                           </button>
                         ))}
                       </div>
-
                       {filteredOther.length === 0 && <EmptyColumn />}
                       {filteredOther.map((r) => (
                         <RequestCard
@@ -562,6 +640,101 @@ export default function ProfilePage() {
       </main>
 
       <Footer />
+
+      {/* ── Үнэлгээний Dialog ── */}
+      <Dialog
+        open={ratingDialog.open}
+        onOpenChange={(o) => setRatingDialog((p) => ({ ...p, open: o }))}
+      >
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-zinc-100">
+            <DialogTitle className="text-base font-semibold text-zinc-900">
+              Миний үнэлгээнүүд
+            </DialogTitle>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    size={13}
+                    className={cn(
+                      userRating.average && s <= Math.round(userRating.average)
+                        ? 'text-amber-400 fill-amber-400'
+                        : 'text-zinc-200 fill-zinc-200',
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-semibold text-zinc-800">
+                {userRating.average?.toFixed(1) ?? '—'}
+              </span>
+              <span className="text-xs text-zinc-400">
+                ({userRating.count} үнэлгээ)
+              </span>
+            </div>
+          </DialogHeader>
+
+          <div className="max-h-[60vh] overflow-y-auto divide-y divide-zinc-100">
+            {ratingDialog.loading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-500 rounded-full animate-spin" />
+              </div>
+            ) : ratingDialog.ratings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-zinc-300 gap-2">
+                <Star size={24} />
+                <p className="text-xs">Үнэлгээ байхгүй</p>
+              </div>
+            ) : (
+              ratingDialog.ratings.map((r, i) => {
+                const from =
+                  r.fromUser?.employer?.employerName ||
+                  r.fromUser?.jobSeeker?.userName ||
+                  'Хэрэглэгч';
+                return (
+                  <div key={i} className="px-6 py-4 flex flex-col gap-2">
+                    {/* Хэн үнэлсэн + одод */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-zinc-700">
+                        {from}
+                      </span>
+                      <StarRow score={r.score} />
+                    </div>
+
+                    {/* Ямар ажил дээр үнэлгээ авсан */}
+                    {r.job?.title && (
+                      <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-100 rounded-lg px-2.5 py-1.5">
+                        <Briefcase
+                          size={11}
+                          className="text-zinc-400 shrink-0"
+                        />
+                        <span className="text-[11px] text-zinc-500 truncate">
+                          {r.job.title}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Comment */}
+                    {r.comment && (
+                      <p className="text-xs text-zinc-500 leading-relaxed">
+                        {r.comment}
+                      </p>
+                    )}
+
+                    {/* Огноо */}
+                    <p className="text-[10px] text-zinc-400">
+                      {new Date(r.createdAt).toLocaleDateString('en-US', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
