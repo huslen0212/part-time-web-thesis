@@ -1,15 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql" // эсвэл mysql / sqlite
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -57,6 +51,8 @@ model User {
   notifications Notification[]
 }
 
+/* ================= JOB SEEKER ================= */
+
 model JobSeeker {
   jobseekerId Int @id
   userName    String?
@@ -64,11 +60,36 @@ model JobSeeker {
   birthDate   DateTime?
   gender      Gender?
   address     String?
-  createdAt   DateTime @default(now())
+
+  skills String? @db.VarChar(250)
+
+  interestedCategoryId Int?
+  interestedCategory   Category? @relation(fields: [interestedCategoryId], references: [categoryId])
+
+  createdAt DateTime @default(now())
 
   user     User     @relation(fields: [jobseekerId], references: [userId])
   requests Request[]
+
+  availabilities AvailabilityTime[]
 }
+
+/* ================= AVAILABILITY ================= */
+
+model AvailabilityTime {
+  id Int @id @default(autoincrement())
+
+  jobSeekerId Int
+  day         Int
+  startTime   DateTime
+  endTime     DateTime
+
+  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [jobseekerId])
+
+  @@index([jobSeekerId, day])
+}
+
+/* ================= EMPLOYER ================= */
 
 model Employer {
   employerId   Int    @id
@@ -80,6 +101,18 @@ model Employer {
   jobs Job[]
 }
 
+/* ================= CATEGORY ================= */
+
+model Category {
+  categoryId Int    @id @default(autoincrement())
+  name       String @unique
+
+  jobs Job[]
+  jobSeekers JobSeeker[]
+}
+
+/* ================= JOB ================= */
+
 model Job {
   jobId       Int      @id @default(autoincrement())
   title       String
@@ -90,7 +123,6 @@ model Job {
   salary      Int
   startTime   DateTime
   endTime     DateTime
-  category    String
   numberOfWorker Int?
   isTemplate  Boolean  @default(false)
   createdAt   DateTime @default(now())
@@ -98,15 +130,20 @@ model Job {
   employerId Int
   employer   Employer @relation(fields: [employerId], references: [employerId])
 
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [categoryId])
+
   requests Request[]
   ratings  Rating[]
 }
+
+/* ================= REQUEST ================= */
 
 model Request {
   requestId   Int           @id @default(autoincrement())
   status      RequestStatus @default(PENDING)
   createdAt   DateTime      @default(now())
-  workerCount Int @default(1)
+  workerCount Int           @default(1)
 
   jobSeekerId Int
   jobId       Int
@@ -114,8 +151,10 @@ model Request {
   jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [jobseekerId])
   job       Job       @relation(fields: [jobId], references: [jobId])
 
-  @@unique([jobSeekerId, jobId]) // нэг ажилд 1 л хүсэлт
+  @@unique([jobSeekerId, jobId])
 }
+
+/* ================= RATING ================= */
 
 model Rating {
   ratingId Int @id @default(autoincrement())
@@ -124,7 +163,7 @@ model Rating {
   toUserId   Int
   jobId      Int
   score      Int
-  comment     String?
+  comment    String?
 
   createdAt DateTime @default(now())
 
@@ -132,18 +171,20 @@ model Rating {
   toUser   User @relation("RatingToUser", fields: [toUserId], references: [userId])
   job      Job  @relation(fields: [jobId], references: [jobId])
 
-  @@unique([fromUserId, toUserId, jobId]) // нэг ажлаар 1 удаа үнэлнэ
+  @@unique([fromUserId, toUserId, jobId])
 }
+
+/* ================= NOTIFICATION ================= */
 
 model Notification {
   notificationId Int @id @default(autoincrement())
 
-  userId   Int
-  title    String
-  message  String
-  type     NotificationType
+  userId  Int
+  title   String
+  message String
+  type    NotificationType
 
-  isRead   Boolean  @default(false)
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [userId])
