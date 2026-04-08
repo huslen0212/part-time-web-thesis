@@ -13,13 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import CreatableSelect from 'react-select/creatable';
 import {
   Dialog,
   DialogContent,
@@ -55,12 +49,14 @@ type JobTemplate = {
   title: string;
   description: string;
   location: string;
-  category: string;
+  category: { categoryId: number; name: string };
   salary: number;
   startTime: string;
   endTime: string;
   numberOfWorker: number;
 };
+
+type CategoryOption = { value: string; label: string };
 
 // token decode hiih function
 function decodeToken(token: string): JwtPayload | null {
@@ -70,15 +66,6 @@ function decodeToken(token: string): JwtPayload | null {
     return null;
   }
 }
-
-const CATEGORIES = [
-  'Үйлчилгээ',
-  'Маркетинг',
-  'IT',
-  'Оффис',
-  'Хүргэлт',
-  'Барилга',
-];
 
 // section card component
 function SectionCard({
@@ -137,7 +124,8 @@ export default function CreateJobPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState<CategoryOption | null>(null);
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
   const [salary, setSalary] = useState<number | ''>('');
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
@@ -172,6 +160,18 @@ export default function CreateJobPage() {
       .then((r) => r.json())
       .then(setTemplates)
       .catch(() => toast.error('Template ачаалж чадсангүй'));
+
+    fetch(`${API_URL}/categories`)
+      .then((r) => r.json())
+      .then((data) =>
+        setCategoryOptions(
+          data.map((c: { categoryId: number; name: string }) => ({
+            value: c.name,
+            label: c.name,
+          })),
+        ),
+      )
+      .catch(console.error);
   }, [router]);
 
   // template-iin medeelliig form-d oruulna
@@ -179,7 +179,7 @@ export default function CreateJobPage() {
     setTitle(job.title);
     setDescription(job.description);
     setLocation(job.location);
-    setCategory(job.category);
+    setCategory({ value: job.category.name, label: job.category.name });
     setSalary(job.salary);
     setStartTime(job.startTime ? new Date(job.startTime) : null);
     setEndTime(job.endTime ? new Date(job.endTime) : null);
@@ -235,7 +235,7 @@ export default function CreateJobPage() {
       !title ||
       !description ||
       !location ||
-      !category ||
+      !category?.value ||
       salary === '' ||
       numberOfWorker === '' ||
       !startTime ||
@@ -257,7 +257,7 @@ export default function CreateJobPage() {
           title,
           description,
           location,
-          category,
+          category: category?.value,
           salary: Number(salary),
           startTime,
           endTime,
@@ -325,18 +325,36 @@ export default function CreateJobPage() {
                   />
                 </FieldGroup>
                 <FieldGroup label="Төрөл">
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="rounded-xl border-zinc-200 focus:ring-[#7f9db1]">
-                      <SelectValue placeholder="Ажлын төрөл сонгох" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CreatableSelect
+                    isClearable
+                    options={categoryOptions}
+                    value={category}
+                    onChange={setCategory}
+                    placeholder="Ажлын төрөл сонгох эсвэл шинээр нэмэх..."
+                    formatCreateLabel={(input) => `"${input}" нэмэх`}
+                    menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                    menuPosition="fixed"
+                    styles={{
+                      control: (base, state) => ({
+                        ...base,
+                        borderRadius: '0.75rem',
+                        borderColor: state.isFocused ? '#7f9db1' : '#e4e4e7',
+                        boxShadow: state.isFocused ? '0 0 0 1px #7f9db1' : 'none',
+                        '&:hover': { borderColor: '#7f9db1' },
+                        fontSize: '0.875rem',
+                      }),
+                      option: (base, state) => ({
+                        ...base,
+                        backgroundColor: state.isSelected
+                          ? '#2872a1'
+                          : state.isFocused
+                            ? '#dbeafe'
+                            : 'white',
+                        color: state.isSelected ? 'white' : '#18181b',
+                        fontSize: '0.875rem',
+                      }),
+                    }}
+                  />
                 </FieldGroup>
               </div>
             </SectionCard>
@@ -554,7 +572,7 @@ export default function CreateJobPage() {
                         active ? 'text-black' : 'text-black',
                       )}
                     >
-                      {t.category} · {t.salary.toLocaleString()}₮
+                      {t.category.name} · {t.salary.toLocaleString()}₮
                     </p>
 
                     <div className="flex gap-2">
@@ -596,7 +614,7 @@ export default function CreateJobPage() {
                     </h4>
 
                     <Badge className="bg-[#2872A1] text-white hover:bg-[#1f5c82] font-medium">
-                      {selectedTemplate.category}
+                      {selectedTemplate.category.name}
                     </Badge>
                   </div>
 

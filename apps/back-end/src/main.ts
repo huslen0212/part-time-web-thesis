@@ -7,6 +7,7 @@ import profileRoutes from './profile/profile.routes';
 import notificationRoutes from './notifications/notifications.routes';
 import employerRoutes from './employer/employer.routes';
 import ratingRoutes from './ratings/ratings.routes';
+import categoryRoutes from './categories/categories.routes';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use('/profile', profileRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/employer', employerRoutes);
 app.use('/ratings', ratingRoutes);
+app.use('/categories', categoryRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

@@ -79,7 +79,7 @@ type MyRequest = {
     title: string;
     location: string;
     description?: string | null;
-    category: string;
+    category: { categoryId: number; name: string };
     startTime: string;
     endTime: string;
   };
@@ -408,7 +408,7 @@ export default function ProfilePage() {
                               {label}
                             </Label>
                             <Input
-                              value={(editProfile as any)[key] || ''}
+                              value={(editProfile as Record<string, string | null | undefined>)[key] || ''}
                               onChange={(e) =>
                                 setEditProfile({
                                   ...editProfile,
@@ -774,7 +774,7 @@ function RequestCard({ r, cardClass }: { r: MyRequest; cardClass: string }) {
             </div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-500">
               <SlidersHorizontal size={11} className="text-zinc-400 shrink-0" />
-              {r.job.category}
+              {r.job.category.name}
             </div>
             <div className="flex items-start gap-1.5 text-xs text-zinc-500">
               <Clock size={11} className="text-zinc-400 mt-0.5 shrink-0" />

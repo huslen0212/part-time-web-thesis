@@ -46,7 +46,7 @@ type Job = {
   jobId: number;
   title: string;
   location: string;
-  category: string;
+  category: { categoryId: number; name: string };
   salary: number;
   startTime: string;
   endTime: string;
@@ -263,7 +263,7 @@ export default function EmployerProfilePage() {
         return (
           job.title.toLowerCase().includes(q) ||
           job.location.toLowerCase().includes(q) ||
-          job.category.toLowerCase().includes(q)
+          job.category?.name.toLowerCase().includes(q)
         );
       }
       return true;
@@ -274,7 +274,7 @@ export default function EmployerProfilePage() {
     if (!profile) return [];
     const map: Record<string, number> = {};
     profile.jobs.forEach((j) => {
-      map[j.category] = (map[j.category] || 0) + 1;
+      map[j.category?.name] = (map[j.category?.name] || 0) + 1;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [profile]);
@@ -544,7 +544,7 @@ export default function EmployerProfilePage() {
                             {job.title}
                           </p>
                           <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-1 rounded-lg shrink-0 font-medium">
-                            {job.category}
+                            {job.category?.name}
                           </span>
                         </div>
                         <Separator />

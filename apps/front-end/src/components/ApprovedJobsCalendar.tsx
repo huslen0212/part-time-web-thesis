@@ -17,7 +17,7 @@ type MyRequest = {
     jobId: number;
     title: string;
     location?: string;
-    category?: string;
+    category?: { categoryId: number; name: string };
     startTime: string;
     endTime: string;
   };
@@ -167,7 +167,7 @@ export default function ApprovedJobsCalendar({
     extendedProps: {
       jobId: r.job.jobId,
       location: r.job.location,
-      category: r.job.category,
+      category: r.job.category?.name,
       endTime: r.job.endTime,
     },
   }));

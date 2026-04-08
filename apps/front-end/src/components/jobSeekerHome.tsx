@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -29,7 +30,7 @@ type Job = {
   jobId: number;
   title: string;
   description: string;
-  category: string;
+  category: { categoryId: number; name: string };
   location: string;
   salary: number;
   startTime: string;
@@ -51,24 +52,6 @@ const SEARCH_TABS: {
   { type: 'salary', label: 'Цалингаар', icon: <Banknote size={14} /> },
   { type: 'location', label: 'Байршлаар', icon: <MapPin size={14} /> },
 ];
-
-const CATEGORIES = [
-  'Үйлчилгээ',
-  'Маркетинг',
-  'IT',
-  'Оффис',
-  'Хүргэлт',
-  'Барилга',
-];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Үйлчилгээ: 'bg-blue-50 text-blue-700 border-blue-200',
-  Маркетинг: 'bg-purple-50 text-purple-700 border-purple-200',
-  IT: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  Оффис: 'bg-amber-50 text-amber-700 border-amber-200',
-  Хүргэлт: 'bg-orange-50 text-orange-700 border-orange-200',
-  Барилга: 'bg-zinc-100 text-zinc-700 border-zinc-200',
-};
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -97,6 +80,7 @@ export default function JobSeekerHome() {
   const [searchType, setSearchType] = useState<SearchType>('title');
   const [searchValue, setSearchValue] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
     fetch(`${API_URL}/jobs`)
@@ -104,13 +88,20 @@ export default function JobSeekerHome() {
       .then((data) => setJobs(Array.isArray(data) ? data : []))
       .catch(() => setError('Сервертэй холбогдож чадсангүй'))
       .finally(() => setLoading(false));
+
+    fetch(`${API_URL}/categories`)
+      .then((r) => r.json())
+      .then((data) => setCategories(data.map((c: { name: string }) => c.name)))
+      .catch(console.error);
   }, []);
 
   const filteredJobs = jobs.filter((job) => {
     if (searchType === 'title' && searchValue.trim())
       return job.title.toLowerCase().includes(searchValue.toLowerCase());
     if (searchType === 'category')
-      return selectedCategory === 'all' || job.category === selectedCategory;
+      return (
+        selectedCategory === 'all' || job.category.name === selectedCategory
+      );
     if (searchType === 'salary' && searchValue)
       return job.salary >= Number(searchValue.replace(/\D/g, ''));
     return true;
@@ -190,7 +181,7 @@ export default function JobSeekerHome() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Бүх төрөл</SelectItem>
-                      {CATEGORIES.map((c) => (
+                      {categories.map((c) => (
                         <SelectItem key={c} value={c}>
                           {c}
                         </SelectItem>
@@ -296,15 +287,9 @@ export default function JobSeekerHome() {
                         </span>
                       </div>
                     </div>
-                    <span
-                      className={cn(
-                        'text-xs font-medium px-2.5 py-1 rounded-full border shrink-0',
-                        CATEGORY_COLORS[job.category] ??
-                          'bg-zinc-100 text-zinc-600 border-zinc-200',
-                      )}
-                    >
-                      {job.category}
-                    </span>
+                    <Badge className="bg-[#2872a1] text-white hover:bg-[#2872a1] text-xs font-medium rounded-full shadow-none flex items-center justify-center">
+                      {job.category.name}
+                    </Badge>
                   </div>
 
                   {/* Description */}
@@ -328,7 +313,7 @@ export default function JobSeekerHome() {
                     />
                     <InfoRow
                       icon={<SlidersHorizontal size={11} />}
-                      text={job.category}
+                      text={job.category.name}
                     />
                   </div>
 

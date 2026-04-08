@@ -50,17 +50,24 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // job table-d hadgalna
+    // job table-d hadgalna, category neriig connectOrCreate-eer uildne
     const job = await prisma.job.create({
       data: {
         title,
         description,
         location,
-        category,
+        category: {
+          connectOrCreate: {
+            where: { name: category },
+            create: { name: category },
+          },
+        },
+        employer: {
+          connect: { employerId: req.user.userId },
+        },
         salary: Number(salary),
         startTime: new Date(startTime),
         endTime: new Date(endTime),
-        employerId: req.user.userId,
         isTemplate: Boolean(isTemplate),
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
@@ -81,9 +88,8 @@ export const getJobs = async (_req: Request, res: Response) => {
     // buh ajluudiig employer-iin medeelleer hamt avna
     const jobs = await prisma.job.findMany({
       include: {
-        employer: {
-          select: { employerName: true },
-        },
+        employer: { select: { employerName: true } },
+        category: { select: { categoryId: true, name: true } },
       },
       orderBy: {
         createdAt: 'desc',
@@ -117,6 +123,7 @@ export const getJobById = async (req: Request, res: Response) => {
             phoneNumber: true,
           },
         },
+        category: { select: { categoryId: true, name: true } },
       },
     });
 
@@ -149,7 +156,7 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
         title: true,
         description: true,
         location: true,
-        category: true,
+        category: { select: { categoryId: true, name: true } },
         salary: true,
         startTime: true,
         endTime: true,

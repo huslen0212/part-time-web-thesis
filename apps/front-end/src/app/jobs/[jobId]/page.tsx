@@ -34,7 +34,7 @@ type Job = {
   jobId: number;
   title: string;
   description: string;
-  category: string;
+  category: { categoryId: number; name: string };
   location: string;
   salary: number;
   startTime: string;
@@ -235,11 +235,11 @@ export default function JobDetailPage() {
                   <span
                     className={cn(
                       'text-xs font-medium px-3 py-1 rounded-full border shrink-0 mt-1',
-                      CATEGORY_COLORS[job.category] ??
+                      CATEGORY_COLORS[job.category.name] ??
                         'bg-zinc-100 text-zinc-600 border-zinc-200',
                     )}
                   >
-                    {job.category}
+                    {job.category.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-sm text-zinc-400">
@@ -287,7 +287,7 @@ export default function JobDetailPage() {
                 <InfoItem
                   icon={<SlidersHorizontal size={15} />}
                   label="Төрөл"
-                  value={job.category}
+                  value={job.category.name}
                 />
                 <InfoItem
                   icon={<Clock size={15} />}
