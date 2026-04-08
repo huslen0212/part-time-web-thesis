@@ -11,11 +11,12 @@ export const getMyProfile = async (req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
-  // job seeker-iin profile-iig DB-s avna
   const profile = await prisma.jobSeeker.findUnique({
     where: { jobseekerId: user.userId },
     include: {
       user: { select: { email: true } },
+      interestedCategory: { select: { categoryId: true, name: true } },
+      availabilities: { orderBy: [{ day: 'asc' }, { startTime: 'asc' }] },
     },
   });
 
@@ -24,7 +25,6 @@ export const getMyProfile = async (req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
-  // frontend ruu yvuulah data
   res.json({
     email: profile.user.email,
     userName: profile.userName,
@@ -32,6 +32,9 @@ export const getMyProfile = async (req: AuthRequest, res: Response): Promise<voi
     birthDate: profile.birthDate,
     gender: profile.gender,
     address: profile.address,
+    skills: profile.skills,
+    interestedCategory: profile.interestedCategory,
+    availabilities: profile.availabilities,
   });
 };
 
@@ -47,20 +50,22 @@ export const getPublicJobSeekerProfile = async (req: AuthRequest, res: Response)
       phoneNumber: true,
       gender: true,
       address: true,
+      skills: true,
       createdAt: true,
+      interestedCategory: { select: { categoryId: true, name: true } },
+      availabilities: { orderBy: [{ day: 'asc' }, { startTime: 'asc' }] },
     },
   });
 
   if (!seeker) { res.status(404).json({ message: 'Олдсонгүй' }); return; }
 
-  // Гүйцэтгэсэн ажлын түүх
   const requests = await prisma.request.findMany({
     where: { jobSeekerId: id, status: 'APPROVED' },
     include: {
       job: {
         select: {
           title: true,
-          category: true,
+          category: { select: { name: true } },
           location: true,
           salary: true,
           startTime: true,
@@ -72,7 +77,6 @@ export const getPublicJobSeekerProfile = async (req: AuthRequest, res: Response)
     orderBy: { createdAt: 'desc' },
   });
 
-  // Үнэлгээ
   const ratings = await prisma.rating.findMany({
     where: { toUserId: id },
     orderBy: { createdAt: 'desc' },
@@ -102,17 +106,29 @@ export const getPublicJobSeekerProfile = async (req: AuthRequest, res: Response)
   });
 };
 
-// PATCH /profile
+// PUT /profile
 export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = req.user;
-  const { email, userName, phoneNumber, birthDate, gender, address } = req.body;
+  const { email, userName, phoneNumber, birthDate, gender, address, skills, interestedCategoryName } = req.body;
 
   if (!user || user.role !== 'JOB_SEEKER') {
     res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
     return;
   }
 
-  // job seeker-iin profile-iig shinechlene
+  // interestedCategory-g neriig oor connectOrCreate hiine
+  let interestedCategoryId: number | undefined = undefined;
+  if (interestedCategoryName) {
+    const cat = await prisma.category.upsert({
+      where: { name: interestedCategoryName },
+      create: { name: interestedCategoryName },
+      update: {},
+    });
+    interestedCategoryId = cat.categoryId;
+  } else if (interestedCategoryName === null) {
+    interestedCategoryId = undefined;
+  }
+
   await prisma.jobSeeker.update({
     where: { jobseekerId: user.userId },
     data: {
@@ -121,6 +137,8 @@ export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<
       birthDate: birthDate ? new Date(birthDate) : undefined,
       gender: gender || undefined,
       address: address || undefined,
+      skills: skills !== undefined ? skills : undefined,
+      interestedCategoryId: interestedCategoryId,
     },
   });
 
@@ -131,5 +149,64 @@ export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<
     });
   }
 
+  res.json({ success: true });
+};
+
+// POST /profile/availability
+export const addAvailability = async (req: AuthRequest, res: Response): Promise<void> => {
+  const user = req.user;
+  if (!user || user.role !== 'JOB_SEEKER') {
+    res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
+    return;
+  }
+
+  const { day, startTime, endTime } = req.body;
+
+  if (day === undefined || !startTime || !endTime) {
+    res.status(400).json({ message: 'Мэдээлэл дутуу' });
+    return;
+  }
+
+  if (new Date(endTime) <= new Date(startTime)) {
+    res.status(400).json({ message: 'Дуусах цаг эхлэх цагаас хойш байх ёстой' });
+    return;
+  }
+
+  const availability = await prisma.availabilityTime.create({
+    data: {
+      jobSeekerId: user.userId,
+      day: Number(day),
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+    },
+  });
+
+  res.status(201).json(availability);
+};
+
+// DELETE /profile/availability/:id
+export const deleteAvailability = async (req: AuthRequest, res: Response): Promise<void> => {
+  const user = req.user;
+  if (!user || user.role !== 'JOB_SEEKER') {
+    res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
+    return;
+  }
+
+  const id = Number(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ message: 'ID буруу' });
+    return;
+  }
+
+  const existing = await prisma.availabilityTime.findFirst({
+    where: { id, jobSeekerId: user.userId },
+  });
+
+  if (!existing) {
+    res.status(404).json({ message: 'Олдсонгүй' });
+    return;
+  }
+
+  await prisma.availabilityTime.delete({ where: { id } });
   res.json({ success: true });
 };

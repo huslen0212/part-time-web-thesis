@@ -641,35 +641,37 @@ export default function EmployerProfilePage() {
                   'Хэрэглэгч';
                 return (
                   <div key={i} className="px-6 py-4 flex flex-col gap-2">
-                    {/* Хэн үнэлсэн + одод */}
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-zinc-700">
-                        {from}
-                      </span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-zinc-400">
+                          Үнэлгээ өгсөн
+                        </span>
+                        <span className="text-sm font-semibold text-zinc-800">
+                          {from}
+                        </span>
+                      </div>
                       <StarRow score={r.score} />
                     </div>
-
-                    {/* Ямар ажил дээр */}
                     {r.job?.title && (
-                      <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-100 rounded-lg px-2.5 py-1.5">
-                        <Briefcase
-                          size={11}
-                          className="text-zinc-400 shrink-0"
-                        />
-                        <span className="text-[11px] text-zinc-500 truncate">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-zinc-400">
+                          Ажил
+                        </span>
+                        <span className="text-sm text-zinc-700 truncate">
                           {r.job.title}
                         </span>
                       </div>
                     )}
-
-                    {/* Comment */}
                     {r.comment && (
-                      <p className="text-xs text-zinc-500 leading-relaxed">
-                        {r.comment}
-                      </p>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-zinc-400">
+                          Сэтгэгдэл
+                        </span>
+                        <p className="text-sm text-zinc-700 leading-relaxed">
+                          {r.comment}
+                        </p>
+                      </div>
                     )}
-
-                    {/* Огноо */}
                     <p className="text-[10px] text-zinc-400">
                       {new Date(r.createdAt).toLocaleDateString('en-US', {
                         month: '2-digit',

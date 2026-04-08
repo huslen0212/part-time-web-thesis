@@ -25,13 +25,20 @@ type WorkItem = {
   createdAt: string;
   job: {
     title: string;
-    category: string;
+    category: { name: string };
     location: string;
     salary: number;
     startTime: string;
     endTime: string;
     employer?: { employerName?: string | null };
   };
+};
+
+type Availability = {
+  id: number;
+  day: number;
+  startTime: string;
+  endTime: string;
 };
 
 type RatingItem = {
@@ -50,7 +57,10 @@ type Profile = {
   phoneNumber: string | null;
   gender: string | null;
   address: string | null;
+  skills: string | null;
   createdAt: string;
+  interestedCategory: { categoryId: number; name: string } | null;
+  availabilities: Availability[];
   workHistory: WorkItem[];
   rating: {
     average: number | null;
@@ -211,6 +221,85 @@ export default function JobSeekerProfilePage() {
                 </div>
               </CardContent>
             </Card>
+            {/* ── Skills + Category + Availability (нэгдсэн card) ── */}
+            <Card className="shadow-none rounded-2xl border-zinc-200">
+              <CardContent className="p-5 space-y-4">
+                {/* Сонирхож буй ажлын төрөл */}
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+                  <Briefcase size={14} className="text-[#2872a1]" /> Сонирхож
+                  буй ажлын төрөл
+                </div>
+                {profile.interestedCategory ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-[#2872a1] bg-[#2872a1]/10 px-2.5 py-1 rounded-full">
+                      {profile.interestedCategory.name}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-400">Чиглэл оруулаагүй</p>
+                )}
+
+                <Separator />
+
+                {/* Миний чадвар */}
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+                  <Star size={14} className="text-[#2872a1]" /> Миний чадвар
+                </div>
+                {profile.skills ? (
+                  <p className="text-xs text-zinc-600">{profile.skills}</p>
+                ) : (
+                  <p className="text-xs text-zinc-400">Чадвар оруулаагүй</p>
+                )}
+
+                <Separator />
+
+                {/* Боломжит цаг */}
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+                  <Clock size={14} className="text-[#2872a1]" /> Боломжит цаг
+                </div>
+                {(profile.availabilities ?? []).length === 0 ? (
+                  <p className="text-xs text-zinc-400">
+                    Цагийн хуваарь оруулаагүй
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {(profile.availabilities ?? []).map((a) => (
+                      <div
+                        key={a.id}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-zinc-100 bg-zinc-50"
+                      >
+                        <span className="text-xs font-semibold text-zinc-700 w-16">
+                          {
+                            [
+                              'Даваа',
+                              'Мягмар',
+                              'Лхагва',
+                              'Пүрэв',
+                              'Баасан',
+                              'Бямба',
+                              'Ням',
+                            ][a.day - 1]
+                          }
+                        </span>
+                        <span className="text-xs text-zinc-400">
+                          {new Date(a.startTime).toLocaleTimeString('mn-MN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                          })}
+                          {' – '}
+                          {new Date(a.endTime).toLocaleTimeString('mn-MN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                          })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* ── Right ── */}
@@ -241,8 +330,8 @@ export default function JobSeekerProfilePage() {
                           <p className="text-sm font-semibold text-zinc-900 leading-tight">
                             {w.job.title}
                           </p>
-                          <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-1 rounded-lg shrink-0 font-medium">
-                            {w.job.category}
+                          <span className="text-[10px] bg-[#2872a1]/10 text-[#2872a1] px-2 py-1 rounded-lg shrink-0 font-medium">
+                            {w.job.category.name}
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -298,31 +387,52 @@ export default function JobSeekerProfilePage() {
                         className="shadow-none rounded-2xl border-zinc-200 bg-white"
                       >
                         <CardContent className="p-4 flex flex-col gap-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-zinc-700">
-                              {from}
-                            </span>
-                            <StarRow score={r.score} />
-                          </div>
-                          {r.job?.title && (
-                            <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-100 rounded-lg px-2.5 py-1.5">
-                              <Briefcase
-                                size={11}
-                                className="text-zinc-400 shrink-0"
-                              />
-                              <span className="text-[11px] text-zinc-500 truncate">
-                                {r.job.title}
-                              </span>
+                          <div
+                            key={i}
+                            className="px-6 py-4 flex flex-col gap-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[10px] font-medium text-zinc-400">
+                                  Үнэлгээ өгсөн
+                                </span>
+                                <span className="text-sm font-semibold text-zinc-800">
+                                  {from}
+                                </span>
+                              </div>
+                              <StarRow score={r.score} />
                             </div>
-                          )}
-                          {r.comment && (
-                            <p className="text-xs text-zinc-500 leading-relaxed">
-                              {r.comment}
+                            {r.job?.title && (
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[10px] font-medium text-zinc-400">
+                                  Ажил
+                                </span>
+                                <span className="text-sm text-zinc-700 truncate">
+                                  {r.job.title}
+                                </span>
+                              </div>
+                            )}
+                            {r.comment && (
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[10px] font-medium text-zinc-400">
+                                  Сэтгэгдэл
+                                </span>
+                                <p className="text-sm text-zinc-700 leading-relaxed">
+                                  {r.comment}
+                                </p>
+                              </div>
+                            )}
+                            <p className="text-[10px] text-zinc-400">
+                              {new Date(r.createdAt).toLocaleDateString(
+                                'en-US',
+                                {
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  year: 'numeric',
+                                },
+                              )}
                             </p>
-                          )}
-                          <p className="text-[10px] text-zinc-400">
-                            {formatDate(r.createdAt)}
-                          </p>
+                          </div>
                         </CardContent>
                       </Card>
                     );

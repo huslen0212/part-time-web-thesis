@@ -10,11 +10,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Rating } from '@mui/material';
+import { TimePicker } from '@mantine/dates';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Popover,
@@ -47,7 +50,9 @@ import {
   Home,
   Cake,
   Star,
-  Briefcase,
+  Tag,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import ApprovedJobsCalendar from '@/components/ApprovedJobsCalendar';
 import { cn } from '@/lib/utils';
@@ -68,7 +73,19 @@ type Profile = {
   birthDate?: string | null;
   gender?: Gender | null;
   address?: string | null;
+  skills?: string | null;
+  interestedCategory?: { categoryId: number; name: string } | null;
+  availabilities?: Availability[];
 };
+
+type Availability = {
+  id: number;
+  day: number;
+  startTime: string;
+  endTime: string;
+};
+
+type CategoryOption = { value: string; label: string };
 
 type MyRequest = {
   requestId: number;
@@ -90,7 +107,6 @@ type UserRating = {
   count: number;
 };
 
-// Үнэлгээний дэлгэрэнгүй мэдээлэл
 type RatingDetail = {
   score: number;
   comment: string | null;
@@ -169,12 +185,23 @@ export default function ProfilePage() {
     count: 0,
   });
 
-  // Үнэлгээний dialog state
   const [ratingDialog, setRatingDialog] = useState<{
     open: boolean;
     ratings: RatingDetail[];
     loading: boolean;
   }>({ open: false, ratings: [], loading: false });
+
+  // Skills/Category/Availability dialog
+  const [skillsDialog, setSkillsDialog] = useState(false);
+
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
+  const [editCategory, setEditCategory] = useState<CategoryOption | null>(null);
+
+  const [newAvail, setNewAvail] = useState({
+    day: 1,
+    startTime: '09:00',
+    endTime: '17:00',
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -200,21 +227,34 @@ export default function ProfilePage() {
             : '',
           gender: profileData.gender || '',
           address: profileData.address || '',
+          skills: profileData.skills || '',
         });
+        if (profileData.interestedCategory) {
+          setEditCategory({
+            value: profileData.interestedCategory.name,
+            label: profileData.interestedCategory.name,
+          });
+        }
         setRequests(requestData);
         setUserRating(ratingData);
       })
       .catch(() => toast.error('Мэдээлэл ачаалж чадсангүй'))
       .finally(() => setLoading(false));
+
+    fetch(`${API_URL}/categories`)
+      .then((r) => r.json())
+      .then((data) =>
+        setCategoryOptions(
+          data.map((c: { name: string }) => ({ value: c.name, label: c.name })),
+        ),
+      )
+      .catch(console.error);
   }, []);
 
-  // Бүх үнэлгээг татах
   const openRatingDialog = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
-
     setRatingDialog({ open: true, ratings: [], loading: true });
-
     try {
       const res = await fetch(`${API_URL}/ratings/me/details`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -231,6 +271,10 @@ export default function ProfilePage() {
     }
   };
 
+  const openSkillsDialog = () => {
+    setSkillsDialog(true);
+  };
+
   const saveProfile = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -240,13 +284,80 @@ export default function ProfilePage() {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(editProfile),
+      body: JSON.stringify({
+        ...editProfile,
+        interestedCategoryName: editCategory?.value ?? null,
+      }),
     });
     if (res.ok) {
-      setProfile(editProfile);
+      setProfile({
+        ...editProfile,
+        interestedCategory: editCategory
+          ? { categoryId: 0, name: editCategory.value }
+          : null,
+        availabilities: profile.availabilities,
+      });
       toast.success('Амжилттай хадгалагдлаа');
     } else {
       toast.error('Хадгалах үед алдаа гарлаа');
+    }
+  };
+
+  const saveSkillsDialog = async () => {
+    await saveProfile();
+    setSkillsDialog(false);
+  };
+
+  const addAvailability = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    const startDate = new Date(`1970-01-01T${newAvail.startTime}:00`);
+    const endDate = new Date(`1970-01-01T${newAvail.endTime}:00`);
+    if (endDate <= startDate) {
+      toast.warning('Дуусах цаг эхлэх цагаас хойш байх ёстой');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/profile/availability`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          day: newAvail.day,
+          startTime: startDate.toISOString(),
+          endTime: endDate.toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const created = await res.json();
+      setProfile((p) => ({
+        ...p,
+        availabilities: [...(p.availabilities ?? []), created],
+      }));
+      toast.success('Нэмэгдлээ');
+    } catch {
+      toast.error('Алдаа гарлаа');
+    }
+  };
+
+  const deleteAvailability = async (id: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/profile/availability/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      setProfile((p) => ({
+        ...p,
+        availabilities: (p.availabilities ?? []).filter((a) => a.id !== id),
+      }));
+      toast.success('Устгагдлаа');
+    } catch {
+      toast.error('Алдаа гарлаа');
     }
   };
 
@@ -307,7 +418,7 @@ export default function ProfilePage() {
                   </p>
                 </div>
 
-                {/* ── Rating хэсэг ── */}
+                {/* Rating */}
                 <div className="flex flex-col items-center gap-1 pb-4">
                   <Rating
                     value={userRating.average ?? 0}
@@ -320,8 +431,6 @@ export default function ProfilePage() {
                       ? `${userRating.average.toFixed(1)} (${userRating.count} үнэлгээ)`
                       : 'Үнэлгээ байхгүй'}
                   </p>
-
-                  {/* ── Бүх үнэлгээг харах товч ── */}
                   {userRating.count > 0 && (
                     <button
                       onClick={openRatingDialog}
@@ -378,7 +487,7 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                {/* Edit */}
+                {/* Edit profile */}
                 <div className="px-5 pb-5">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -408,7 +517,14 @@ export default function ProfilePage() {
                               {label}
                             </Label>
                             <Input
-                              value={(editProfile as Record<string, string | null | undefined>)[key] || ''}
+                              value={
+                                (
+                                  editProfile as Record<
+                                    string,
+                                    string | null | undefined
+                                  >
+                                )[key] || ''
+                              }
                               onChange={(e) =>
                                 setEditProfile({
                                   ...editProfile,
@@ -469,6 +585,100 @@ export default function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* ── Skills + Category + Availability (нэгдсэн card) ── */}
+            <Card className="shadow-none rounded-2xl border-zinc-200">
+              <CardContent className="p-5 space-y-4">
+                {/* Сонирхож буй ажлын төрөл */}
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+                  <Tag size={14} className="text-[#2872a1]" /> Сонирхож буй
+                  ажлын төрөл
+                </div>
+                {profile.interestedCategory ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-[#2872a1] bg-[#2872a1]/10 px-2.5 py-1 rounded-full">
+                      {profile.interestedCategory.name}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-400">Чиглэл оруулаагүй</p>
+                )}
+
+                <Separator />
+
+                {/* Миний чадвар */}
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+                  <Star size={14} className="text-[#2872a1]" /> Миний чадвар
+                </div>
+                {profile.skills ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.skills ? (
+                      <p className="text-xs text-zinc-600">{profile.skills}</p>
+                    ) : (
+                      <p className="text-xs text-zinc-400">Чадвар оруулаагүй</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-400">Чадвар оруулаагүй</p>
+                )}
+
+                <Separator />
+
+                {/* Боломжит цаг */}
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
+                  <Clock size={14} className="text-[#2872a1]" /> Боломжит цаг
+                </div>
+                {(profile.availabilities ?? []).length === 0 ? (
+                  <p className="text-xs text-zinc-400">
+                    Цагийн хуваарь оруулаагүй
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {(profile.availabilities ?? []).map((a) => (
+                      <div
+                        key={a.id}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-zinc-100 bg-zinc-50"
+                      >
+                        <span className="text-xs font-semibold text-zinc-700 w-16">
+                          {
+                            [
+                              'Даваа',
+                              'Мягмар',
+                              'Лхагва',
+                              'Пүрэв',
+                              'Баасан',
+                              'Бямба',
+                              'Ням',
+                            ][a.day - 1]
+                          }
+                        </span>
+                        <span className="text-xs text-zinc-400">
+                          {new Date(a.startTime).toLocaleTimeString('mn-MN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                          })}
+                          {' – '}
+                          {new Date(a.endTime).toLocaleTimeString('mn-MN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                          })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl gap-2 border-zinc-200 text-zinc-700 text-sm hover:bg-zinc-50"
+                  onClick={openSkillsDialog}
+                >
+                  <Pencil size={13} /> Засах
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           {/* ── Right: Calendar + Requests ── */}
@@ -488,9 +698,8 @@ export default function ProfilePage() {
               <h2 className="text-xl font-bold text-zinc-900 mb-5">
                 Миний илгээсэн хүсэлтүүд
               </h2>
-
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* ── PENDING ── */}
+                {/* PENDING */}
                 <div className="flex flex-col gap-3">
                   <div
                     className={cn(
@@ -521,7 +730,7 @@ export default function ProfilePage() {
                   ))}
                 </div>
 
-                {/* ── APPROVED ── */}
+                {/* APPROVED */}
                 <div className="flex flex-col gap-3">
                   <div
                     className={cn(
@@ -542,7 +751,6 @@ export default function ProfilePage() {
                       {filteredApproved.length}
                     </span>
                   </div>
-
                   <div className="flex gap-1.5 p-1 bg-zinc-100 rounded-xl">
                     {(
                       [
@@ -565,7 +773,6 @@ export default function ProfilePage() {
                       </button>
                     ))}
                   </div>
-
                   {filteredApproved.length === 0 && <EmptyColumn />}
                   {filteredApproved.map((r) => (
                     <RequestCard
@@ -576,7 +783,7 @@ export default function ProfilePage() {
                   ))}
                 </div>
 
-                {/* ── REJECTED / CANCEL ── */}
+                {/* REJECTED / CANCEL */}
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={() => setShowOther((v) => !v)}
@@ -594,7 +801,6 @@ export default function ProfilePage() {
                       {otherAll.length}
                     </span>
                   </button>
-
                   {showOther && (
                     <>
                       <div className="flex gap-1.5 p-1 bg-zinc-100 rounded-xl">
@@ -673,7 +879,6 @@ export default function ProfilePage() {
               </span>
             </div>
           </DialogHeader>
-
           <div className="max-h-[60vh] overflow-y-auto divide-y divide-zinc-100">
             {ratingDialog.loading ? (
               <div className="flex justify-center py-12">
@@ -692,35 +897,37 @@ export default function ProfilePage() {
                   'Хэрэглэгч';
                 return (
                   <div key={i} className="px-6 py-4 flex flex-col gap-2">
-                    {/* Хэн үнэлсэн + одод */}
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-zinc-700">
-                        {from}
-                      </span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-zinc-400">
+                          Үнэлгээ өгсөн
+                        </span>
+                        <span className="text-sm font-semibold text-zinc-800">
+                          {from}
+                        </span>
+                      </div>
                       <StarRow score={r.score} />
                     </div>
-
-                    {/* Ямар ажил дээр үнэлгээ авсан */}
                     {r.job?.title && (
-                      <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-100 rounded-lg px-2.5 py-1.5">
-                        <Briefcase
-                          size={11}
-                          className="text-zinc-400 shrink-0"
-                        />
-                        <span className="text-[11px] text-zinc-500 truncate">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-zinc-400">
+                          Ажил
+                        </span>
+                        <span className="text-sm text-zinc-700 truncate">
                           {r.job.title}
                         </span>
                       </div>
                     )}
-
-                    {/* Comment */}
                     {r.comment && (
-                      <p className="text-xs text-zinc-500 leading-relaxed">
-                        {r.comment}
-                      </p>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-medium text-zinc-400">
+                          Сэтгэгдэл
+                        </span>
+                        <p className="text-sm text-zinc-700 leading-relaxed">
+                          {r.comment}
+                        </p>
+                      </div>
                     )}
-
-                    {/* Огноо */}
                     <p className="text-[10px] text-zinc-400">
                       {new Date(r.createdAt).toLocaleDateString('en-US', {
                         month: '2-digit',
@@ -733,6 +940,183 @@ export default function ProfilePage() {
               })
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Skills / Category / Availability Dialog ── */}
+      <Dialog open={skillsDialog} onOpenChange={setSkillsDialog}>
+        <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 border-b border-zinc-100">
+            <DialogTitle className="text-base font-semibold text-zinc-900">
+              Мэдээлэл засах
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              Чадвар, чиглэл болон боломжит цагаа засна уу
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+            {/* Чадвар */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
+                <Star size={13} className="text-[#2872a1]" /> Миний чадвар
+              </Label>
+              <Input
+                placeholder="Та өөрийн чадвараа оруулна уу..."
+                value={editProfile.skills || ''}
+                onChange={(e) =>
+                  setEditProfile({ ...editProfile, skills: e.target.value })
+                }
+                className="rounded-xl border-zinc-200 focus-visible:ring-[#2872A1]"
+              />
+              <p className="text-[11px] text-zinc-400">
+                Таслалаар тусгаарлана уу
+              </p>
+            </div>
+
+            {/* Чиглэл */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
+                <Tag size={13} className="text-[#2872a1]" /> Сонирхож буй чиглэл
+              </Label>
+              <Select
+                value={editCategory?.value || ''}
+                onValueChange={(v) => setEditCategory({ value: v, label: v })}
+              >
+                <SelectTrigger className="rounded-xl border-zinc-200 focus:ring-[#2872A1] h-10 text-sm">
+                  <SelectValue placeholder="Төрөл сонгох..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
+            {/* Боломжит цаг */}
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
+                <Clock size={13} className="text-[#2872a1]" /> Боломжит цаг
+              </Label>
+
+              <div className="space-y-2">
+                {(profile.availabilities ?? []).length === 0 && (
+                  <p className="text-xs text-zinc-400">
+                    Цагийн хуваарь оруулаагүй
+                  </p>
+                )}
+                {(profile.availabilities ?? []).map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl border border-zinc-100 bg-zinc-50"
+                  >
+                    <div className="flex items-center gap-2 text-xs text-zinc-700">
+                      <span className="font-semibold w-16">
+                        {
+                          [
+                            'Даваа',
+                            'Мягмар',
+                            'Лхагва',
+                            'Пүрэв',
+                            'Баасан',
+                            'Бямба',
+                            'Ням',
+                          ][a.day - 1]
+                        }
+                      </span>
+                      <span className="text-zinc-400">
+                        {new Date(a.startTime).toLocaleTimeString('mn-MN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false,
+                        })}
+                        {' – '}
+                        {new Date(a.endTime).toLocaleTimeString('mn-MN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false,
+                        })}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => deleteAvailability(a.id)}
+                      className="text-zinc-300 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Шинэ цаг нэмэх */}
+              <div className="space-y-2 pt-2 border-t border-zinc-100">
+                <p className="text-xs font-medium text-zinc-500">
+                  Шинэ цаг нэмэх
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <select
+                    value={newAvail.day}
+                    onChange={(e) =>
+                      setNewAvail({ ...newAvail, day: Number(e.target.value) })
+                    }
+                    className="rounded-xl border border-zinc-200 text-xs px-2 py-2 focus:outline-none focus:ring-1 focus:ring-[#2872A1]"
+                  >
+                    {[
+                      'Даваа',
+                      'Мягмар',
+                      'Лхагва',
+                      'Пүрэв',
+                      'Баасан',
+                      'Бямба',
+                      'Ням',
+                    ].map((d, i) => (
+                      <option key={i} value={i + 1}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                  <TimePicker
+                    value={newAvail.startTime}
+                    onChange={(v) => setNewAvail({ ...newAvail, startTime: v })}
+                    size="xs"
+                  />
+                  <TimePicker
+                    value={newAvail.endTime}
+                    onChange={(v) => setNewAvail({ ...newAvail, endTime: v })}
+                    size="xs"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={addAvailability}
+                  className="w-full rounded-xl bg-[#2872a1] hover:bg-[#2872a1]/80 text-white gap-1.5 text-xs h-8"
+                >
+                  <Plus size={13} /> Нэмэх
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="px-6 py-4 border-t border-zinc-100">
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setSkillsDialog(false)}
+            >
+              Цуцлах
+            </Button>
+            <Button
+              className="rounded-xl bg-[#2872A1] hover:bg-[#2872A1]/80"
+              onClick={saveSkillsDialog}
+            >
+              Хадгалах
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
