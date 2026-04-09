@@ -236,12 +236,12 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
     }
 
     // raw SQL ashiglaj zaigaar shuune
-    const jobs = await prisma.$queryRawUnsafe(`
+    const rawJobs = await prisma.$queryRawUnsafe<{ jobId: number }[]>(`
       SELECT *
       FROM (
         SELECT *,
           (
-            6371000 * acos( 
+            6371000 * acos(
               cos(radians(${lat}))
               * cos(radians("latitude"))
               * cos(radians("longitude") - radians(${lng}))
@@ -257,7 +257,22 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
       ORDER BY distance ASC
     `);
 
-    return res.json(jobs);
+    const jobIds = rawJobs.map((j) => j.jobId);
+
+    const jobs = await prisma.job.findMany({
+      where: { jobId: { in: jobIds } },
+      include: {
+        category: true,
+        employer: { select: { employerName: true } },
+      },
+    });
+
+    // distance дарааллыг хадгална
+    const ordered = jobIds
+      .map((id) => jobs.find((j) => j.jobId === id))
+      .filter(Boolean);
+
+    return res.json(ordered);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });

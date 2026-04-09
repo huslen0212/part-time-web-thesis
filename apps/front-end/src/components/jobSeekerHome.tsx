@@ -288,7 +288,7 @@ export default function JobSeekerHome() {
                       </div>
                     </div>
                     <Badge className="bg-[#2872a1] text-white hover:bg-[#2872a1] text-xs font-medium rounded-full shadow-none flex items-center justify-center">
-                      {job.category.name}
+                      {job.category?.name}
                     </Badge>
                   </div>
 
@@ -313,7 +313,7 @@ export default function JobSeekerHome() {
                     />
                     <InfoRow
                       icon={<SlidersHorizontal size={11} />}
-                      text={job.category.name}
+                      text={job.category?.name}
                     />
                   </div>
 
