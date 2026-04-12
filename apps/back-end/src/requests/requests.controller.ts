@@ -250,3 +250,102 @@ export const updateRequestStatus = async (
     res.status(500).json({ message: 'Статус өөрчлөхөд алдаа гарлаа' });
   }
 };
+
+// GET /requests/me/invites — JOB_INVITE type-тэй request-уудыг job мэдээлэлтэй буцаана
+export const getMyInviteRequests = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  const user = req.user;
+  if (!user || user.role !== 'JOB_SEEKER') {
+    res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
+    return;
+  }
+
+  const invites = await prisma.request.findMany({
+    where: { jobSeekerId: user.userId, type: 'JOB_INVITE' },
+    include: {
+      job: {
+        select: {
+          jobId: true,
+          title: true,
+          location: true,
+          salary: true,
+          startTime: true,
+          endTime: true,
+          category: { select: { name: true } },
+          employer: { select: { employerName: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json(invites);
+};
+
+// PATCH /requests/:requestId/invite-response — JOB_SEEKER invite зөвшөөрөх/татгалзах
+export const respondToInvite = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const user = req.user;
+    if (!user || user.role !== 'JOB_SEEKER') {
+      res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
+      return;
+    }
+
+    const { action } = req.body as { action: 'accept' | 'reject' };
+    if (!['accept', 'reject'].includes(action)) {
+      res.status(400).json({ message: 'Буруу action' });
+      return;
+    }
+
+    const requestId = Number(req.params.requestId);
+    const invite = await prisma.request.findFirst({
+      where: { requestId, jobSeekerId: user.userId, type: 'JOB_INVITE' },
+      include: { job: true },
+    });
+
+    if (!invite) {
+      res.status(404).json({ message: 'Ажлын санал олдсонгүй' });
+      return;
+    }
+
+    if (action === 'accept') {
+      await prisma.$transaction(async (tx) => {
+        await tx.request.update({
+          where: { requestId },
+          data: { status: 'APPROVED' },
+        });
+        // Давхардсан хүлээгдэж буй хүсэлтүүд цуцлах
+        await tx.request.updateMany({
+          where: {
+            jobSeekerId: user.userId,
+            status: 'PENDING',
+            requestId: { not: requestId },
+            job: {
+              AND: [
+                { startTime: { lte: invite.job.endTime } },
+                { endTime: { gte: invite.job.startTime } },
+              ],
+            },
+          },
+          data: { status: 'CANCEL' },
+        });
+      });
+      res.json({ message: 'Зөвшөөрлөө' });
+    } else {
+      await prisma.request.update({
+        where: { requestId },
+        data: { status: 'REJECTED' },
+      });
+      res.json({ message: 'Татгалзлаа' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Алдаа гарлаа' });
+  }
+};
+

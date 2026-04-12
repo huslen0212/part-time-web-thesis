@@ -9,7 +9,6 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
     }
 
-    // request body-s data avna
     const {
       title,
       description,
@@ -20,11 +19,10 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       endTime,
       isTemplate,
       latitude,
-      longitude, 
+      longitude,
       numberOfWorker,
     } = req.body;
 
-    // input validation
     if (
       !title ||
       !description ||
@@ -38,19 +36,16 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Мэдээлэл дутуу' });
     }
 
-    // salary bolon numberOfWorker 0-s ih baih ystoi
     if (Number(salary) <= 0) {
       return res.status(400).json({ message: 'Цалин буруу утгатай' });
     }
 
-    //duusah tsag ehleh tsagaas hoish bh ystoi
     if (new Date(endTime) <= new Date(startTime)) {
       return res.status(400).json({
         message: 'Дуусах цаг эхлэх цагаас хойш байх ёстой',
       });
     }
 
-    // job table-d hadgalna, category neriig connectOrCreate-eer uildne
     const job = await prisma.job.create({
       data: {
         title,
@@ -85,15 +80,12 @@ export const createJob = async (req: AuthRequest, res: Response) => {
 // GET /jobs
 export const getJobs = async (_req: Request, res: Response) => {
   try {
-    // buh ajluudiig employer-iin medeelleer hamt avna
     const jobs = await prisma.job.findMany({
       include: {
         employer: { select: { employerName: true } },
         category: { select: { categoryId: true, name: true } },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
     return res.json(jobs);
@@ -112,7 +104,6 @@ export const getJobById = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Job ID буруу' });
     }
 
-    // job-iig employer-iin medeelleer hamt avna
     const job = await prisma.job.findUnique({
       where: { jobId },
       include: {
@@ -145,7 +136,6 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
     }
 
-    // tuhain employer-iin ajluudiig avna
     const jobs = await prisma.job.findMany({
       where: {
         employerId: req.user.userId,
@@ -162,9 +152,7 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
         endTime: true,
         numberOfWorker: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
     return res.json(jobs);
@@ -174,20 +162,18 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// PATCH /jobs/template/:id
+// DELETE /jobs/template/:id
 export const removeTemplate = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
       return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
     }
 
-    // jobId-g params-s avna
     const jobId = Number(req.params.id);
     if (isNaN(jobId)) {
       return res.status(400).json({ message: 'Job ID буруу' });
     }
 
-    // tuhain jobId-tei, template status-tai job baigaa esehiig shalgana
     const template = await prisma.job.findFirst({
       where: {
         jobId,
@@ -197,21 +183,15 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
     });
 
     if (!template) {
-      return res.status(404).json({
-        message: 'Template олдсонгүй',
-      });
+      return res.status(404).json({ message: 'Template олдсонгүй' });
     }
 
     await prisma.job.update({
       where: { jobId },
-      data: {
-        isTemplate: false,
-      },
+      data: { isTemplate: false },
     });
 
-    return res.json({
-      message: 'Template амжилттай устгагдлаа',
-    });
+    return res.json({ message: 'Template амжилттай устгагдлаа' });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
@@ -221,12 +201,10 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
 // GET /jobs/nearby?lat=..&lng=..&radius=..
 export const getNearbyJobs = async (req: Request, res: Response) => {
   try {
-    // lat, lng, radius query parameter-s avna
     const latParam = req.query.lat as string;
     const lngParam = req.query.lng as string;
     const radiusParam = req.query.radius as string;
 
-    // lat, lng zaaval baih ystoi, radius bolgoniig 500m gej avna
     const lat = parseFloat(latParam);
     const lng = parseFloat(lngParam);
     const radius = radiusParam ? parseFloat(radiusParam) : 500;
@@ -235,7 +213,6 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'lat/lng required' });
     }
 
-    // raw SQL ashiglaj zaigaar shuune
     const rawJobs = await prisma.$queryRawUnsafe<{ jobId: number }[]>(`
       SELECT *
       FROM (
@@ -267,12 +244,172 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
       },
     });
 
-    // distance дарааллыг хадгална
     const ordered = jobIds
       .map((id) => jobs.find((j) => j.jobId === id))
       .filter(Boolean);
 
     return res.json(ordered);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// GET /jobs/:id/seekers?filterAvailability=true&filterCategory=true
+export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'EMPLOYER') {
+      return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
+    }
+
+    const jobId = Number(req.params.id);
+    if (isNaN(jobId)) {
+      return res.status(400).json({ message: 'Job ID буруу' });
+    }
+
+    const filterAvailability = req.query.filterAvailability === 'true';
+    const filterCategory = req.query.filterCategory === 'true';
+
+    const job = await prisma.job.findUnique({
+      where: { jobId },
+      include: { category: true },
+    });
+
+    if (!job) return res.status(404).json({ message: 'Ажил олдсонгүй' });
+
+    const where: Record<string, unknown> = {};
+    if (filterCategory) {
+      where.interestedCategoryId = job.categoryId;
+    }
+
+    let seekers = await prisma.jobSeeker.findMany({
+      where,
+      include: {
+        interestedCategory: true,
+        availabilities: true,
+        user: {
+          include: { ratingsReceived: { select: { score: true } } },
+        },
+      },
+    });
+
+    if (filterAvailability) {
+      const jobStart = new Date(job.startTime);
+      const jobEnd = new Date(job.endTime);
+
+      // job span-д орох бүх weekday цуглуулна
+      const jobDays = new Set<number>();
+      const cursor = new Date(jobStart);
+      while (cursor <= jobEnd) {
+        jobDays.add(cursor.getDay()); // 0=Sun..6=Sat
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      const toMinutes = (d: Date) => d.getHours() * 60 + d.getMinutes();
+      const jobStartMin = toMinutes(jobStart);
+      const jobEndMin = toMinutes(jobEnd);
+
+      seekers = seekers.filter((s) =>
+        s.availabilities.some((a) => {
+          if (!jobDays.has(a.day)) return false;
+          const aStart = toMinutes(new Date(a.startTime));
+          const aEnd = toMinutes(new Date(a.endTime));
+          return aStart < jobEndMin && aEnd > jobStartMin;
+        }),
+      );
+    }
+
+    const result = seekers.map((s) => {
+      const scores = s.user.ratingsReceived.map((r) => r.score);
+      return {
+        jobseekerId: s.jobseekerId,
+        userName: s.userName ?? 'Нэргүй',
+        skills: s.skills ?? null,
+        interestedCategory: s.interestedCategory?.name ?? null,
+        avgRating:
+          scores.length > 0
+            ? Math.round(
+                (scores.reduce((a, b) => a + b, 0) / scores.length) * 10,
+              ) / 10
+            : null,
+        ratingCount: scores.length,
+        availabilities: s.availabilities.map((a) => ({
+          day: a.day,
+          startTime: a.startTime,
+          endTime: a.endTime,
+        })),
+      };
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// GET /jobs/:id/my-status — current user-ийн энэ job-д request/invite байгаа эсэх
+export const getMyJobStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const jobId = Number(req.params.id);
+    if (isNaN(jobId)) return res.status(400).json({ message: 'ID буруу' });
+
+    const request = await prisma.request.findUnique({
+      where: { jobSeekerId_jobId: { jobSeekerId: req.user.userId, jobId } },
+      select: { requestId: true, type: true, status: true },
+    });
+
+    if (!request) return res.json({ kind: null });
+
+    return res.json({
+      kind: request.type === 'JOB_INVITE' ? 'invite' : 'request',
+      requestId: request.requestId,
+      status: request.status,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// POST /jobs/:id/invite/:seekerId
+export const inviteSeeker = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'EMPLOYER') {
+      return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
+    }
+
+    const jobId = Number(req.params.id);
+    const seekerId = Number(req.params.seekerId);
+
+    if (isNaN(jobId) || isNaN(seekerId)) {
+      return res.status(400).json({ message: 'ID буруу' });
+    }
+
+    const job = await prisma.job.findFirst({
+      where: { jobId, employerId: req.user.userId },
+    });
+    if (!job) return res.status(404).json({ message: 'Ажил олдсонгүй' });
+
+    const seeker = await prisma.jobSeeker.findUnique({
+      where: { jobseekerId: seekerId },
+    });
+    if (!seeker) return res.status(404).json({ message: 'Ажил хайгч олдсонгүй' });
+
+    const existing = await prisma.request.findUnique({
+      where: { jobSeekerId_jobId: { jobSeekerId: seekerId, jobId } },
+    });
+    if (existing) {
+      return res.status(409).json({ message: 'Ажлын санал аль хэдийн илгээгдсэн' });
+    }
+
+    await prisma.request.create({
+      data: { jobSeekerId: seekerId, jobId, type: 'JOB_INVITE', status: 'PENDING' },
+    });
+
+    return res.json({ message: 'Ажлын санал амжилттай илгээгдлээ' });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });

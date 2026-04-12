@@ -33,6 +33,7 @@ import {
   Trash2,
   Plus,
   Loader2,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -56,9 +57,24 @@ type JobTemplate = {
   numberOfWorker: number;
 };
 
+type AvailabilitySlot = {
+  day: number;
+  startTime: string;
+  endTime: string;
+};
+
+type SeekerResult = {
+  jobseekerId: number;
+  userName: string;
+  skills: string | null;
+  interestedCategory: string | null;
+  avgRating: number | null;
+  ratingCount: number;
+  availabilities: AvailabilitySlot[];
+};
+
 type CategoryOption = { value: string; label: string };
 
-// token decode hiih function
 function decodeToken(token: string): JwtPayload | null {
   try {
     return JSON.parse(atob(token.split('.')[1]));
@@ -67,7 +83,6 @@ function decodeToken(token: string): JwtPayload | null {
   }
 }
 
-// section card component
 function SectionCard({
   icon,
   title,
@@ -99,7 +114,6 @@ function SectionCard({
   );
 }
 
-// field group component
 function FieldGroup({
   label,
   children,
@@ -115,12 +129,36 @@ function FieldGroup({
   );
 }
 
+const DAY_NAMES = ['Ня', 'Да', 'Мя', 'Лха', 'Пү', 'Ба', 'Бя'];
+
+function fmtTime(dt: string) {
+  const d = new Date(dt);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function StarRating({ score }: { score: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          size={12}
+          className={
+            i <= Math.round(score)
+              ? 'fill-amber-400 text-amber-400'
+              : 'fill-zinc-200 text-zinc-200'
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function CreateJobPage() {
   const router = useRouter();
-  // loading state
+
   const [loading, setLoading] = useState(false);
 
-  // form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -132,7 +170,6 @@ export default function CreateJobPage() {
   const [createTemplate, setCreateTemplate] = useState(false);
   const [numberOfWorker, setNumberOfWorker] = useState<number | ''>('');
 
-  // template-uudiin state
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<JobTemplate | null>(
@@ -141,11 +178,18 @@ export default function CreateJobPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
-  // gazriin urtarag, urgurug state
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
-  // template-uudiig backend-s avna
+  const [createdJobId, setCreatedJobId] = useState<number | null>(null);
+  const [matchModalOpen, setMatchModalOpen] = useState(false);
+  const [seekers, setSeekers] = useState<SeekerResult[]>([]);
+  const [seekerLoading, setSeekerLoading] = useState(false);
+  const [filterAvailability, setFilterAvailability] = useState(true);
+  const [filterCategory, setFilterCategory] = useState(false);
+  const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
+  const [invitingId, setInvitingId] = useState<number | null>(null);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return router.push('/login');
@@ -174,7 +218,33 @@ export default function CreateJobPage() {
       .catch(console.error);
   }, [router]);
 
-  // template-iin medeelliig form-d oruulna
+  useEffect(() => {
+    if (!matchModalOpen || !createdJobId) return;
+    const fetchSeekers = async () => {
+      setSeekerLoading(true);
+      try {
+        const params = new URLSearchParams({
+          filterAvailability: String(filterAvailability),
+          filterCategory: String(filterCategory),
+        });
+        const res = await fetch(
+          `${API_URL}/jobs/${createdJobId}/seekers?${params}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          },
+        );
+        setSeekers(await res.json());
+      } catch {
+        toast.error('Ажил хайгчдыг ачаалж чадсангүй');
+      } finally {
+        setSeekerLoading(false);
+      }
+    };
+    fetchSeekers();
+  }, [matchModalOpen, createdJobId, filterAvailability, filterCategory]);
+
   const applyTemplate = (job: JobTemplate) => {
     setTitle(job.title);
     setDescription(job.description);
@@ -188,14 +258,12 @@ export default function CreateJobPage() {
     setNumberOfWorker(job.numberOfWorker ?? 1);
   };
 
-  // gazriin urtarag, urgurug state-g shinechleh function
   const handleLocationSelect = (lat: number, lng: number, address: string) => {
     setLatitude(lat);
     setLongitude(lng);
     setLocation(address);
   };
 
-  // startTime, endTime state-g string-ruu hurvuuleh function
   const handleStartTimeChange = (value: string | null) => {
     setStartTime(value ? new Date(value) : null);
   };
@@ -204,13 +272,11 @@ export default function CreateJobPage() {
     setEndTime(value ? new Date(value) : null);
   };
 
-  // template ustgah confirm dialog
   const openDeleteConfirm = (jobId: number) => {
     setDeleteTargetId(jobId);
     setDeleteConfirmOpen(true);
   };
 
-  // template ustgah function
   const confirmDelete = async () => {
     if (!deleteTargetId) return;
     try {
@@ -229,7 +295,6 @@ export default function CreateJobPage() {
     }
   };
 
-  // form-iin medeelliig backend ruu yvuulah function
   const handleSubmit = async () => {
     if (
       !title ||
@@ -246,7 +311,6 @@ export default function CreateJobPage() {
     }
     setLoading(true);
     try {
-      // form-iin medeelliig backend ruu yvuulna
       const res = await fetch(`${API_URL}/jobs`, {
         method: 'POST',
         headers: {
@@ -268,12 +332,48 @@ export default function CreateJobPage() {
         }),
       });
       if (!res.ok) throw new Error();
+      const data = await res.json();
       toast.success('Амжилттай хадгалагдлаа');
-      router.push('/');
+      setCreatedJobId(data.job.jobId);
+      setMatchModalOpen(true);
     } catch {
       toast.error('Алдаа гарлаа');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const closeMatchModal = () => {
+    setMatchModalOpen(false);
+    sessionStorage.setItem('job_created', '1');
+    router.push('/');
+  };
+
+  const handleInvite = async (seekerId: number) => {
+    if (!createdJobId) return;
+    setInvitingId(seekerId);
+    try {
+      const res = await fetch(
+        `${API_URL}/jobs/${createdJobId}/invite/${seekerId}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        },
+      );
+      if (res.status === 409) {
+        toast.info('Ажлын санал аль хэдийн илгээгдсэн байна');
+        setInvitedIds((prev) => new Set(prev).add(seekerId));
+        return;
+      }
+      if (!res.ok) throw new Error();
+      toast.success('Ажлын санал илгээгдлээ');
+      setInvitedIds((prev) => new Set(prev).add(seekerId));
+    } catch {
+      toast.error('Ажлын санал илгээхэд алдаа гарлаа');
+    } finally {
+      setInvitingId(null);
     }
   };
 
@@ -282,7 +382,6 @@ export default function CreateJobPage() {
       <Header />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10">
-        {/* Page header */}
         <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">
@@ -332,14 +431,18 @@ export default function CreateJobPage() {
                     onChange={setCategory}
                     placeholder="Ажлын төрөл сонгох эсвэл шинээр нэмэх..."
                     formatCreateLabel={(input) => `"${input}" нэмэх`}
-                    menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                    menuPortalTarget={
+                      typeof document !== 'undefined' ? document.body : null
+                    }
                     menuPosition="fixed"
                     styles={{
                       control: (base, state) => ({
                         ...base,
                         borderRadius: '0.75rem',
                         borderColor: state.isFocused ? '#7f9db1' : '#e4e4e7',
-                        boxShadow: state.isFocused ? '0 0 0 1px #7f9db1' : 'none',
+                        boxShadow: state.isFocused
+                          ? '0 0 0 1px #7f9db1'
+                          : 'none',
                         '&:hover': { borderColor: '#7f9db1' },
                         fontSize: '0.875rem',
                       }),
@@ -534,7 +637,6 @@ export default function CreateJobPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-[240px_1fr] gap-5 mt-1">
-            {/* Template List */}
             <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
               {templates.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-10 text-black gap-2">
@@ -542,10 +644,8 @@ export default function CreateJobPage() {
                   <p className="text-xs">Хадгалсан загвар байхгүй</p>
                 </div>
               )}
-
               {templates.map((t) => {
                 const active = selectedTemplate?.jobId === t.jobId;
-
                 return (
                   <div
                     key={t.jobId}
@@ -557,24 +657,12 @@ export default function CreateJobPage() {
                         : 'bg-white border-[#CBDDE9] hover:border-[#2872A1] hover:bg-[#CBDDE9]/40',
                     )}
                   >
-                    <p
-                      className={cn(
-                        'text-sm font-semibold truncate mb-0.5',
-                        active ? 'text-black' : 'text-black',
-                      )}
-                    >
+                    <p className="text-sm font-semibold truncate mb-0.5 text-black">
                       {t.title}
                     </p>
-
-                    <p
-                      className={cn(
-                        'text-xs mb-3',
-                        active ? 'text-black' : 'text-black',
-                      )}
-                    >
+                    <p className="text-xs mb-3 text-black">
                       {t.category.name} · {t.salary.toLocaleString()}₮
                     </p>
-
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -586,7 +674,6 @@ export default function CreateJobPage() {
                       >
                         Ашиглах
                       </Button>
-
                       <Button
                         size="sm"
                         variant="outline"
@@ -604,7 +691,6 @@ export default function CreateJobPage() {
               })}
             </div>
 
-            {/* Detail Section */}
             <div className="bg-white rounded-xl border border-[#CBDDE9] p-5 min-h-[200px]">
               {selectedTemplate ? (
                 <div className="flex flex-col gap-4">
@@ -612,14 +698,11 @@ export default function CreateJobPage() {
                     <h4 className="text-lg font-bold text-black mb-2">
                       {selectedTemplate.title}
                     </h4>
-
                     <Badge className="bg-[#2872A1] text-white hover:bg-[#1f5c82] font-medium">
                       {selectedTemplate.category.name}
                     </Badge>
                   </div>
-
                   <Separator className="bg-[#CBDDE9]" />
-
                   <div className="flex flex-col gap-2.5 text-sm">
                     <div className="flex gap-3">
                       <span className="font-semibold text-black w-20 shrink-0">
@@ -629,7 +712,6 @@ export default function CreateJobPage() {
                         {selectedTemplate.location}
                       </span>
                     </div>
-
                     <div className="flex gap-3">
                       <span className="font-semibold text-black w-20 shrink-0">
                         Цалин
@@ -638,7 +720,6 @@ export default function CreateJobPage() {
                         {selectedTemplate.salary.toLocaleString()} ₮
                       </span>
                     </div>
-
                     <div className="flex gap-3">
                       <span className="font-semibold text-black w-20 shrink-0">
                         Авах хүн
@@ -648,9 +729,7 @@ export default function CreateJobPage() {
                       </span>
                     </div>
                   </div>
-
                   <Separator className="bg-[#CBDDE9]" />
-
                   <p className="text-sm text-black leading-relaxed whitespace-pre-line">
                     {selectedTemplate.description}
                   </p>
@@ -669,6 +748,162 @@ export default function CreateJobPage() {
               variant="outline"
               className="rounded-xl border-[#CBDDE9] text-black hover:bg-[#CBDDE9]"
               onClick={() => setOpenDialog(false)}
+            >
+              Хаах
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MATCHING SEEKERS MODAL */}
+      <Dialog
+        open={matchModalOpen}
+        onOpenChange={(v) => !v && closeMatchModal()}
+      >
+        <DialogContent className="max-w-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-zinc-900">
+              Тохирох ажил хайгчид
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Filters */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => setFilterAvailability((v) => !v)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors select-none',
+                filterAvailability
+                  ? 'bg-[#2872a1] border-[#2872a1] text-white'
+                  : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300',
+              )}
+            >
+              <Clock size={14} />
+              Цагийн хуваарь
+            </button>
+            <button
+              onClick={() => setFilterCategory((v) => !v)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors select-none',
+                filterCategory
+                  ? 'bg-[#2872a1] border-[#2872a1] text-white'
+                  : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300',
+              )}
+            >
+              <Briefcase size={14} />
+              Ажлын төрөл
+            </button>
+            <span className="ml-auto text-xs text-zinc-400">
+              {seekerLoading ? (
+                <Loader2 size={13} className="animate-spin inline" />
+              ) : (
+                `${seekers.length} хүн олдлоо`
+              )}
+            </span>
+          </div>
+
+          <Separator />
+
+          {/* Seeker list */}
+          <div className="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-1">
+            {seekerLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="animate-spin text-zinc-300" size={28} />
+              </div>
+            ) : seekers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-zinc-400 gap-2">
+                <Briefcase size={30} />
+                <p className="text-sm">Тохирох ажил хайгч олдсонгүй</p>
+              </div>
+            ) : (
+              seekers.map((s) => (
+                <div
+                  key={s.jobseekerId}
+                  className="flex flex-col gap-3 p-4 rounded-xl border border-zinc-200 bg-white hover:border-[#CBDDE9] transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-sm font-semibold text-zinc-900">
+                        {s.userName}
+                      </p>
+                      {s.interestedCategory && (
+                        <Badge className="w-fit bg-[#2872a1] text-white text-xs font-medium hover:bg-[#1f5c82]">
+                          {s.interestedCategory}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {s.avgRating !== null ? (
+                        <>
+                          <StarRating score={s.avgRating} />
+                          <span className="text-xs text-zinc-500">
+                            {s.avgRating} ({s.ratingCount} үнэлгээ)
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-zinc-400">
+                          Үнэлгээ байхгүй
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {s.skills && (
+                    <>
+                      <Separator />
+                      <p className="text-xs text-zinc-500 leading-relaxed">
+                        {s.skills}
+                      </p>
+                    </>
+                  )}
+                  {s.availabilities.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="flex flex-wrap gap-1.5">
+                        {s.availabilities.map((a, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-100 text-zinc-600 text-xs font-medium"
+                          >
+                            <Clock size={10} />
+                            {DAY_NAMES[a.day]} {fmtTime(a.startTime)}–
+                            {fmtTime(a.endTime)}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <Button
+                    size="sm"
+                    disabled={
+                      invitedIds.has(s.jobseekerId) ||
+                      invitingId === s.jobseekerId
+                    }
+                    onClick={() => handleInvite(s.jobseekerId)}
+                    className={cn(
+                      'w-full h-8 text-xs rounded-xl font-medium transition-colors',
+                      invitedIds.has(s.jobseekerId)
+                        ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                        : 'bg-[#2872a1] hover:bg-[#1f5c82] text-white',
+                    )}
+                  >
+                    {invitingId === s.jobseekerId ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : invitedIds.has(s.jobseekerId) ? (
+                      '✓ Ажлын санал илгээгдлээ'
+                    ) : (
+                      'Санал илгээх'
+                    )}
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={closeMatchModal}
             >
               Хаах
             </Button>

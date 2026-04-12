@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import JobSeekerHome from '@/components/jobSeekerHome';
 import EmployerHome from '@/components/employerHome';
 import Header from '@/components/Header';
@@ -38,6 +39,11 @@ export default function HomePage() {
     }
 
     setUser(decoded);
+
+    if (sessionStorage.getItem('job_created')) {
+      sessionStorage.removeItem('job_created');
+      toast.success('Ажил амжилттай нэмэгдлээ');
+    }
   }, []);
 
   return (

@@ -21,11 +21,17 @@ enum RequestStatus {
   CANCEL
 }
 
+enum RequestType {
+  JOB_REQUEST
+  JOB_INVITE
+}
+
 enum NotificationType {
   REQUEST_CREATED
   REQUEST_APPROVED
   REQUEST_REJECTED
   REQUEST_CANCELLED
+  JOB_INVITED
 }
 
 enum Gender {
@@ -142,6 +148,7 @@ model Job {
 model Request {
   requestId   Int           @id @default(autoincrement())
   status      RequestStatus @default(PENDING)
+  type        RequestType   @default(JOB_REQUEST)
   createdAt   DateTime      @default(now())
   workerCount Int           @default(1)
 

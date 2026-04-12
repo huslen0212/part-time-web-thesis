@@ -13,7 +13,6 @@ export const getMyNotifications = async (
       return;
     }
 
-    // tuhain user-iin notification-uudiig avna
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user.userId },
       orderBy: { createdAt: 'desc' },
@@ -34,7 +33,6 @@ export const markNotificationRead = async (
   try {
     const { id } = req.params;
 
-    // tuhain notification baigaa esehiig shalgana
     await prisma.notification.update({
       where: { notificationId: Number(id) },
       data: { isRead: true },

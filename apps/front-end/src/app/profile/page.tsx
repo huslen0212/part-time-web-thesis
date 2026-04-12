@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import {
   Calendar,
   MapPin,
+  Banknote,
   SlidersHorizontal,
   Mail,
   Phone,
@@ -99,6 +100,22 @@ type MyRequest = {
     category: { categoryId: number; name: string };
     startTime: string;
     endTime: string;
+  };
+};
+
+type InviteItem = {
+  requestId: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCEL';
+  createdAt: string;
+  job: {
+    jobId: number;
+    title: string;
+    location: string;
+    salary: number;
+    startTime: string;
+    endTime: string;
+    category: { name: string };
+    employer: { employerName: string | null };
   };
 };
 
@@ -180,6 +197,10 @@ export default function ProfilePage() {
     'REJECTED',
   );
   const [showOther, setShowOther] = useState(false);
+  const [requestTab, setRequestTab] = useState<'sent' | 'received'>('sent');
+  const [invites, setInvites] = useState<InviteItem[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [inviteActingId, setInviteActingId] = useState<number | null>(null);
   const [userRating, setUserRating] = useState<UserRating>({
     average: null,
     count: 0,
@@ -191,9 +212,7 @@ export default function ProfilePage() {
     loading: boolean;
   }>({ open: false, ratings: [], loading: false });
 
-  // Skills/Category/Availability dialog
   const [skillsDialog, setSkillsDialog] = useState(false);
-
   const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
   const [editCategory, setEditCategory] = useState<CategoryOption | null>(null);
 
@@ -211,12 +230,17 @@ export default function ProfilePage() {
     }
     const headers = { Authorization: `Bearer ${token}` };
 
+    setInvitesLoading(true);
+
     Promise.all([
       fetch(`${API_URL}/profile`, { headers }).then((r) => r.json()),
       fetch(`${API_URL}/requests/me`, { headers }).then((r) => r.json()),
       fetch(`${API_URL}/ratings/me`, { headers }).then((r) => r.json()),
+      fetch(`${API_URL}/requests/me/invites`, { headers }).then((r) =>
+        r.json(),
+      ),
     ])
-      .then(([profileData, requestData, ratingData]) => {
+      .then(([profileData, requestData, ratingData, inviteData]) => {
         setProfile(profileData);
         setEditProfile({
           email: profileData.email || '',
@@ -237,9 +261,13 @@ export default function ProfilePage() {
         }
         setRequests(requestData);
         setUserRating(ratingData);
+        setInvites(Array.isArray(inviteData) ? inviteData : []);
       })
       .catch(() => toast.error('Мэдээлэл ачаалж чадсангүй'))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setInvitesLoading(false);
+      });
 
     fetch(`${API_URL}/categories`)
       .then((r) => r.json())
@@ -250,6 +278,11 @@ export default function ProfilePage() {
       )
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (requestTab !== 'received') return;
+    setInvitesLoading(false);
+  }, [requestTab]);
 
   const openRatingDialog = async () => {
     const token = localStorage.getItem('token');
@@ -271,9 +304,7 @@ export default function ProfilePage() {
     }
   };
 
-  const openSkillsDialog = () => {
-    setSkillsDialog(true);
-  };
+  const openSkillsDialog = () => setSkillsDialog(true);
 
   const saveProfile = async () => {
     const token = localStorage.getItem('token');
@@ -361,6 +392,55 @@ export default function ProfilePage() {
     }
   };
 
+  const handleInviteAction = async (
+    requestId: number,
+    action: 'accept' | 'reject',
+  ) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setInviteActingId(requestId);
+    try {
+      const res = await fetch(
+        `${API_URL}/requests/${requestId}/invite-response`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message || 'Алдаа гарлаа');
+        return;
+      }
+      setInvites((prev) =>
+        prev.map((inv) =>
+          inv.requestId === requestId
+            ? { ...inv, status: action === 'accept' ? 'APPROVED' : 'REJECTED' }
+            : inv,
+        ),
+      );
+      if (action === 'accept') {
+        toast.success('Зөвшөөрлөө — ажлын хуваарьт нэмэгдлээ');
+        fetch(`${API_URL}/requests/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((r) => r.json())
+          .then(setRequests)
+          .catch(console.error);
+      } else {
+        toast.success('Татгалзлаа');
+      }
+    } catch {
+      toast.error('Алдаа гарлаа');
+    } finally {
+      setInviteActingId(null);
+    }
+  };
+
   const now = new Date();
   const startOfToday = new Date(
     now.getFullYear(),
@@ -368,10 +448,14 @@ export default function ProfilePage() {
     now.getDate(),
   );
 
-  const pending = requests.filter((r) => r.status === 'PENDING');
-  const approved = requests.filter((r) => r.status === 'APPROVED');
-  const rejected = requests.filter((r) => r.status === 'REJECTED');
-  const cancelled = requests.filter((r) => r.status === 'CANCEL');
+  // invite-аар ирсэн jobId-уудыг sent tab-аас хасна
+  const inviteJobIds = new Set(invites.map((i) => i.job.jobId));
+  const sentRequests = requests.filter((r) => !inviteJobIds.has(r.job.jobId));
+
+  const pending = sentRequests.filter((r) => r.status === 'PENDING');
+  const approved = sentRequests.filter((r) => r.status === 'APPROVED');
+  const rejected = sentRequests.filter((r) => r.status === 'REJECTED');
+  const cancelled = sentRequests.filter((r) => r.status === 'CANCEL');
   const otherAll = [...rejected, ...cancelled];
   const filteredOther = otherAll.filter((r) => r.status === otherFilter);
 
@@ -408,7 +492,6 @@ export default function ProfilePage() {
           <div className="flex flex-col gap-4">
             <Card className="shadow-none rounded-2xl border-zinc-200 overflow-hidden">
               <CardContent className="p-0">
-                {/* Avatar */}
                 <div className="flex flex-col items-center py-8 px-6">
                   <p className="font-bold text-zinc-900">
                     {profile.userName || '—'}
@@ -418,7 +501,6 @@ export default function ProfilePage() {
                   </p>
                 </div>
 
-                {/* Rating */}
                 <div className="flex flex-col items-center gap-1 pb-4">
                   <Rating
                     value={userRating.average ?? 0}
@@ -447,7 +529,6 @@ export default function ProfilePage() {
 
                 <Separator />
 
-                {/* Info */}
                 <div className="px-5 py-4 space-y-3">
                   <ProfileRow
                     icon={<Mail size={13} />}
@@ -487,7 +568,6 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                {/* Edit profile */}
                 <div className="px-5 pb-5">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -586,10 +666,9 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* ── Skills + Category + Availability (нэгдсэн card) ── */}
+            {/* Skills + Category + Availability */}
             <Card className="shadow-none rounded-2xl border-zinc-200">
               <CardContent className="p-5 space-y-4">
-                {/* Сонирхож буй ажлын төрөл */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                   <Tag size={14} className="text-[#2872a1]" /> Сонирхож буй
                   ажлын төрөл
@@ -606,25 +685,17 @@ export default function ProfilePage() {
 
                 <Separator />
 
-                {/* Миний чадвар */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                   <Star size={14} className="text-[#2872a1]" /> Миний чадвар
                 </div>
                 {profile.skills ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {profile.skills ? (
-                      <p className="text-xs text-zinc-600">{profile.skills}</p>
-                    ) : (
-                      <p className="text-xs text-zinc-400">Чадвар оруулаагүй</p>
-                    )}
-                  </div>
+                  <p className="text-xs text-zinc-600">{profile.skills}</p>
                 ) : (
                   <p className="text-xs text-zinc-400">Чадвар оруулаагүй</p>
                 )}
 
                 <Separator />
 
-                {/* Боломжит цаг */}
                 <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                   <Clock size={14} className="text-[#2872a1]" /> Боломжит цаг
                 </div>
@@ -695,151 +766,315 @@ export default function ProfilePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-zinc-900 mb-5">
-                Миний илгээсэн хүсэлтүүд
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* PENDING */}
-                <div className="flex flex-col gap-3">
-                  <div
-                    className={cn(
-                      'flex items-center justify-between px-3 py-2.5 rounded-xl border',
-                      STATUS_CONFIG.PENDING.header,
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5 text-sm font-semibold">
-                      {STATUS_CONFIG.PENDING.icon}
-                      {STATUS_CONFIG.PENDING.label}
-                    </div>
-                    <span
-                      className={cn(
-                        'text-xs font-bold px-2 py-0.5 rounded-full',
-                        STATUS_CONFIG.PENDING.count,
-                      )}
-                    >
-                      {pending.length}
-                    </span>
-                  </div>
-                  {pending.length === 0 && <EmptyColumn />}
-                  {pending.map((r) => (
-                    <RequestCard
-                      key={r.requestId}
-                      r={r}
-                      cardClass={STATUS_CONFIG.PENDING.card}
-                    />
-                  ))}
-                </div>
+              <div className="flex items-center gap-2 mb-5">
+                <button
+                  onClick={() => setRequestTab('sent')}
+                  className={cn(
+                    'px-5 py-2 rounded-xl text-sm font-semibold border transition-all',
+                    requestTab === 'sent'
+                      ? 'bg-[#2872a1] text-white border-[#2872a1]'
+                      : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400',
+                  )}
+                >
+                  Миний илгээсэн хүсэлтүүд
+                </button>
+                <button
+                  onClick={() => setRequestTab('received')}
+                  className={cn(
+                    'px-5 py-2 rounded-xl text-sm font-semibold border transition-all',
+                    requestTab === 'received'
+                      ? 'bg-[#2872a1] text-white border-[#2872a1]'
+                      : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400',
+                  )}
+                >
+                  Надад ирсэн хүсэлтүүд
+                </button>
+              </div>
 
-                {/* APPROVED */}
-                <div className="flex flex-col gap-3">
-                  <div
-                    className={cn(
-                      'flex items-center justify-between px-3 py-2.5 rounded-xl border',
-                      STATUS_CONFIG.APPROVED.header,
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5 text-sm font-semibold">
-                      {STATUS_CONFIG.APPROVED.icon}
-                      {STATUS_CONFIG.APPROVED.label}
-                    </div>
-                    <span
+              {/* ── Sent requests ── */}
+              {requestTab === 'sent' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* PENDING */}
+                  <div className="flex flex-col gap-3">
+                    <div
                       className={cn(
-                        'text-xs font-bold px-2 py-0.5 rounded-full',
-                        STATUS_CONFIG.APPROVED.count,
+                        'flex items-center justify-between px-3 py-2.5 rounded-xl border',
+                        STATUS_CONFIG.PENDING.header,
                       )}
                     >
-                      {filteredApproved.length}
-                    </span>
-                  </div>
-                  <div className="flex gap-1.5 p-1 bg-zinc-100 rounded-xl">
-                    {(
-                      [
-                        { key: 'all', label: 'Бүгд' },
-                        { key: 'upcoming', label: 'Өнөөдрөөс хойш' },
-                        { key: 'past', label: 'Өнөөдрөөс өмнө' },
-                      ] as { key: ApprovedFilter; label: string }[]
-                    ).map(({ key, label }) => (
-                      <button
-                        key={key}
-                        onClick={() => setApprovedFilter(key)}
+                      <div className="flex items-center gap-1.5 text-sm font-semibold">
+                        {STATUS_CONFIG.PENDING.icon}
+                        {STATUS_CONFIG.PENDING.label}
+                      </div>
+                      <span
                         className={cn(
-                          'flex-1 text-xs font-medium py-1.5 rounded-lg transition-all',
-                          approvedFilter === key
-                            ? 'bg-white text-[#0D3B66] shadow-sm'
-                            : 'text-zinc-400 hover:text-[#7F9DB1]',
+                          'text-xs font-bold px-2 py-0.5 rounded-full',
+                          STATUS_CONFIG.PENDING.count,
                         )}
                       >
-                        {label}
-                      </button>
+                        {pending.length}
+                      </span>
+                    </div>
+                    {pending.length === 0 && <EmptyColumn />}
+                    {pending.map((r) => (
+                      <RequestCard
+                        key={r.requestId}
+                        r={r}
+                        cardClass={STATUS_CONFIG.PENDING.card}
+                      />
                     ))}
                   </div>
-                  {filteredApproved.length === 0 && <EmptyColumn />}
-                  {filteredApproved.map((r) => (
-                    <RequestCard
-                      key={r.requestId}
-                      r={r}
-                      cardClass={STATUS_CONFIG.APPROVED.card}
-                    />
-                  ))}
-                </div>
 
-                {/* REJECTED / CANCEL */}
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={() => setShowOther((v) => !v)}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-semibold text-zinc-600 hover:bg-zinc-100"
-                  >
-                    <span className="flex items-center gap-2">
-                      {showOther ? (
-                        <ChevronUp size={14} />
-                      ) : (
-                        <ChevronDown size={14} />
+                  {/* APPROVED */}
+                  <div className="flex flex-col gap-3">
+                    <div
+                      className={cn(
+                        'flex items-center justify-between px-3 py-2.5 rounded-xl border',
+                        STATUS_CONFIG.APPROVED.header,
                       )}
-                      Татгалзсан / Цуцлагдсан
-                    </span>
-                    <span className="text-xs bg-zinc-200 text-zinc-600 px-2 py-0.5 rounded-full">
-                      {otherAll.length}
-                    </span>
-                  </button>
-                  {showOther && (
-                    <>
-                      <div className="flex gap-1.5 p-1 bg-zinc-100 rounded-xl">
-                        {[
-                          { key: 'REJECTED', label: 'Татгалзсан' },
-                          { key: 'CANCEL', label: 'Цуцлагдсан' },
-                        ].map(({ key, label }) => (
-                          <button
-                            key={key}
-                            onClick={() =>
-                              setOtherFilter(key as 'REJECTED' | 'CANCEL')
-                            }
-                            className={cn(
-                              'flex-1 text-xs font-medium py-1.5 rounded-lg transition-all',
-                              otherFilter === key
-                                ? 'bg-white text-[#0D3B66] shadow-sm'
-                                : 'text-zinc-400 hover:text-[#7F9DB1]',
-                            )}
-                          >
-                            {label}
-                          </button>
-                        ))}
+                    >
+                      <div className="flex items-center gap-1.5 text-sm font-semibold">
+                        {STATUS_CONFIG.APPROVED.icon}
+                        {STATUS_CONFIG.APPROVED.label}
                       </div>
-                      {filteredOther.length === 0 && <EmptyColumn />}
-                      {filteredOther.map((r) => (
-                        <RequestCard
-                          key={r.requestId}
-                          r={r}
-                          cardClass={
-                            r.status === 'REJECTED'
-                              ? 'border-red-100 hover:border-red-200 opacity-70'
-                              : 'border-zinc-200 hover:border-zinc-300 opacity-70'
-                          }
-                        />
+                      <span
+                        className={cn(
+                          'text-xs font-bold px-2 py-0.5 rounded-full',
+                          STATUS_CONFIG.APPROVED.count,
+                        )}
+                      >
+                        {filteredApproved.length}
+                      </span>
+                    </div>
+                    <div className="flex gap-1.5 p-1 bg-zinc-100 rounded-xl">
+                      {(
+                        [
+                          { key: 'all', label: 'Бүгд' },
+                          { key: 'upcoming', label: 'Өнөөдрөөс хойш' },
+                          { key: 'past', label: 'Өнөөдрөөс өмнө' },
+                        ] as { key: ApprovedFilter; label: string }[]
+                      ).map(({ key, label }) => (
+                        <button
+                          key={key}
+                          onClick={() => setApprovedFilter(key)}
+                          className={cn(
+                            'flex-1 text-xs font-medium py-1.5 rounded-lg transition-all',
+                            approvedFilter === key
+                              ? 'bg-white text-[#0D3B66] shadow-sm'
+                              : 'text-zinc-400 hover:text-[#7F9DB1]',
+                          )}
+                        >
+                          {label}
+                        </button>
                       ))}
-                    </>
+                    </div>
+                    {filteredApproved.length === 0 && <EmptyColumn />}
+                    {filteredApproved.map((r) => (
+                      <RequestCard
+                        key={r.requestId}
+                        r={r}
+                        cardClass={STATUS_CONFIG.APPROVED.card}
+                      />
+                    ))}
+                  </div>
+
+                  {/* REJECTED / CANCEL */}
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={() => setShowOther((v) => !v)}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-semibold text-zinc-600 hover:bg-zinc-100"
+                    >
+                      <span className="flex items-center gap-2">
+                        {showOther ? (
+                          <ChevronUp size={14} />
+                        ) : (
+                          <ChevronDown size={14} />
+                        )}
+                        Татгалзсан / Цуцлагдсан
+                      </span>
+                      <span className="text-xs bg-zinc-200 text-zinc-600 px-2 py-0.5 rounded-full">
+                        {otherAll.length}
+                      </span>
+                    </button>
+                    {showOther && (
+                      <>
+                        <div className="flex gap-1.5 p-1 bg-zinc-100 rounded-xl">
+                          {[
+                            { key: 'REJECTED', label: 'Татгалзсан' },
+                            { key: 'CANCEL', label: 'Цуцлагдсан' },
+                          ].map(({ key, label }) => (
+                            <button
+                              key={key}
+                              onClick={() =>
+                                setOtherFilter(key as 'REJECTED' | 'CANCEL')
+                              }
+                              className={cn(
+                                'flex-1 text-xs font-medium py-1.5 rounded-lg transition-all',
+                                otherFilter === key
+                                  ? 'bg-white text-[#0D3B66] shadow-sm'
+                                  : 'text-zinc-400 hover:text-[#7F9DB1]',
+                              )}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        {filteredOther.length === 0 && <EmptyColumn />}
+                        {filteredOther.map((r) => (
+                          <RequestCard
+                            key={r.requestId}
+                            r={r}
+                            cardClass={
+                              r.status === 'REJECTED'
+                                ? 'border-red-100 hover:border-red-200 opacity-70'
+                                : 'border-zinc-200 hover:border-zinc-300 opacity-70'
+                            }
+                          />
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Received invites ── */}
+              {requestTab === 'received' && (
+                <div className="flex flex-col gap-3">
+                  {invitesLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-600 rounded-full animate-spin" />
+                    </div>
+                  ) : invites.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-zinc-300 gap-2">
+                      <Users size={30} />
+                      <p className="text-sm">Ирсэн ажлын санал байхгүй</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {invites.map((inv) => {
+                        const isActing = inviteActingId === inv.requestId;
+                        const isPending = inv.status === 'PENDING';
+                        return (
+                          <Link
+                            key={inv.requestId}
+                            href={`/jobs/${inv.job.jobId}`}
+                            className="block"
+                          >
+                            <Card
+                              className={cn(
+                                'shadow-none rounded-2xl border transition-all bg-white hover:shadow-sm cursor-pointer',
+                                inv.status === 'APPROVED'
+                                  ? 'border-emerald-200 bg-emerald-50/40'
+                                  : inv.status === 'REJECTED'
+                                    ? 'border-zinc-200 opacity-60'
+                                    : 'border-[#CBDDE9] hover:border-[#2872a1]/40',
+                              )}
+                            >
+                              <CardContent className="p-4 space-y-3">
+                                <p className="text-sm font-semibold text-zinc-900 leading-tight line-clamp-1">
+                                  {inv.job.title}
+                                </p>
+                                <Separator />
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                                    <MapPin
+                                      size={11}
+                                      className="text-zinc-400 shrink-0"
+                                    />
+                                    <span className="truncate">
+                                      {inv.job.location}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                                    <SlidersHorizontal
+                                      size={11}
+                                      className="text-zinc-400 shrink-0"
+                                    />
+                                    {inv.job.category.name}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                                    <Banknote
+                                      size={11}
+                                      className="text-zinc-400 shrink-0"
+                                    />
+                                    {inv.job.salary.toLocaleString()} ₮
+                                  </div>
+                                  <div className="flex items-start gap-1.5 text-xs text-zinc-500">
+                                    <Clock
+                                      size={11}
+                                      className="text-zinc-400 mt-0.5 shrink-0"
+                                    />
+                                    <div>
+                                      {formatDate(inv.job.startTime)} →{' '}
+                                      {formatDate(inv.job.endTime)}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                                    <Calendar size={10} className="shrink-0" />
+                                    Ирсэн: {formatDate(inv.createdAt)}
+                                  </div>
+                                </div>
+                                <Separator />
+                                {isPending ? (
+                                  <div
+                                    className="flex gap-2"
+                                    onClick={(e) => e.preventDefault()}
+                                  >
+                                    <Button
+                                      size="sm"
+                                      disabled={isActing}
+                                      className="flex-1 h-8 text-xs rounded-xl bg-[#2872a1] hover:bg-[#1f5c82] text-white"
+                                      onClick={() =>
+                                        handleInviteAction(
+                                          inv.requestId,
+                                          'accept',
+                                        )
+                                      }
+                                    >
+                                      {isActing ? (
+                                        <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                      ) : (
+                                        'Зөвшөөрөх'
+                                      )}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={isActing}
+                                      className="flex-1 h-8 text-xs rounded-xl border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                                      onClick={() =>
+                                        handleInviteAction(
+                                          inv.requestId,
+                                          'reject',
+                                        )
+                                      }
+                                    >
+                                      Татгалзах
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <p
+                                    className={cn(
+                                      'text-xs font-medium text-center py-1',
+                                      inv.status === 'APPROVED'
+                                        ? 'text-emerald-600'
+                                        : 'text-zinc-400',
+                                    )}
+                                  >
+                                    {inv.status === 'APPROVED'
+                                      ? '✓ Зөвшөөрсөн'
+                                      : '✗ Татгалзсан'}
+                                  </p>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
             </section>
           </div>
         </div>
@@ -847,7 +1082,7 @@ export default function ProfilePage() {
 
       <Footer />
 
-      {/* ── Үнэлгээний Dialog ── */}
+      {/* Үнэлгээний Dialog */}
       <Dialog
         open={ratingDialog.open}
         onOpenChange={(o) => setRatingDialog((p) => ({ ...p, open: o }))}
@@ -943,7 +1178,7 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Skills / Category / Availability Dialog ── */}
+      {/* Skills / Category / Availability Dialog */}
       <Dialog open={skillsDialog} onOpenChange={setSkillsDialog}>
         <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 border-b border-zinc-100">
@@ -956,7 +1191,6 @@ export default function ProfilePage() {
           </DialogHeader>
 
           <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-            {/* Чадвар */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
                 <Star size={13} className="text-[#2872a1]" /> Миний чадвар
@@ -974,7 +1208,6 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Чиглэл */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
                 <Tag size={13} className="text-[#2872a1]" /> Сонирхож буй чиглэл
@@ -998,7 +1231,6 @@ export default function ProfilePage() {
 
             <Separator />
 
-            {/* Боломжит цаг */}
             <div className="space-y-3">
               <Label className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
                 <Clock size={13} className="text-[#2872a1]" /> Боломжит цаг
@@ -1053,7 +1285,6 @@ export default function ProfilePage() {
                 ))}
               </div>
 
-              {/* Шинэ цаг нэмэх */}
               <div className="space-y-2 pt-2 border-t border-zinc-100">
                 <p className="text-xs font-medium text-zinc-500">
                   Шинэ цаг нэмэх
@@ -1163,9 +1394,7 @@ function RequestCard({ r, cardClass }: { r: MyRequest; cardClass: string }) {
             <div className="flex items-start gap-1.5 text-xs text-zinc-500">
               <Clock size={11} className="text-zinc-400 mt-0.5 shrink-0" />
               <div>
-                <div>
-                  {formatDate(r.job.startTime)} → {formatDate(r.job.endTime)}
-                </div>
+                {formatDate(r.job.startTime)} → {formatDate(r.job.endTime)}
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] text-zinc-400">
