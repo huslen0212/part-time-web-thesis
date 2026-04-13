@@ -187,6 +187,7 @@ model Notification {
   notificationId Int @id @default(autoincrement())
 
   userId  Int
+  jobId   Int?
   title   String
   message String
   type    NotificationType

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { sendToUser } from '../notifications/sse';
 
 // POST /jobs
 export const createJob = async (req: AuthRequest, res: Response) => {
@@ -408,6 +409,17 @@ export const inviteSeeker = async (req: AuthRequest, res: Response) => {
     await prisma.request.create({
       data: { jobSeekerId: seekerId, jobId, type: 'JOB_INVITE', status: 'PENDING' },
     });
+
+    const inviteNotif = await prisma.notification.create({
+      data: {
+        userId: seekerId,
+        jobId,
+        title: 'Ажлын санал ирлээ',
+        message: `${job.title} ажлын байранд санал ирлээ`,
+        type: 'JOB_INVITED',
+      },
+    });
+    sendToUser(seekerId, inviteNotif);
 
     return res.json({ message: 'Ажлын санал амжилттай илгээгдлээ' });
   } catch (error) {

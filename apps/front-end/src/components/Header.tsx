@@ -31,6 +31,7 @@ type JwtPayload = {
 
 type Notification = {
   notificationId: number;
+  jobId: number | null;
   title: string;
   message: string;
   isRead: boolean;
@@ -107,9 +108,14 @@ export default function Header() {
 
     fetchNotifications(); // эхний fetch
 
-    const interval = setInterval(fetchNotifications, 1000); // 5 секунд тутам
+    // SSE холболт — шинэ notification ирэх үед л fetch хийнэ
+    const es = new EventSource(
+      `http://localhost:3001/notifications/stream?token=${token}`,
+    );
+    es.onmessage = () => fetchNotifications();
+    es.onerror = () => es.close();
 
-    return () => clearInterval(interval);
+    return () => es.close();
   }, [user]);
 
   const markAsRead = async (notificationId: number) => {
@@ -235,7 +241,10 @@ export default function Header() {
                     notifications.map((n, i) => (
                       <div key={n.notificationId}>
                         <button
-                          onClick={() => markAsRead(n.notificationId)}
+                          onClick={() => {
+                            markAsRead(n.notificationId);
+                            if (n.jobId) router.push(`/jobs/${n.jobId}`);
+                          }}
                           className={cn(
                             'w-full text-left px-4 py-3 hover:bg-gray-100 transition-colors',
                             !n.isRead && 'bg-[#B4D6E3]/40',

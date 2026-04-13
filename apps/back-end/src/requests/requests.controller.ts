@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { sendToUser } from '../notifications/sse';
 
 // POST /requests
 export const createRequest = async (
@@ -55,14 +56,16 @@ export const createRequest = async (
   });
 
   // Employer-d notification
-  await prisma.notification.create({
+  const notif = await prisma.notification.create({
     data: {
       userId: request.job.employerId,
+      jobId: request.job.jobId,
       title: 'Шинэ хүсэлт ирлээ',
       message: `${request.job.title} ажилд шинэ хүсэлт ирлээ`,
       type: 'REQUEST_CREATED',
     },
   });
+  sendToUser(request.job.employerId, notif);
 
     res.json(request);
   } catch (error) {
@@ -223,9 +226,10 @@ export const updateRequestStatus = async (
         });
       }
 
-  await tx.notification.create({
+  const statusNotif = await tx.notification.create({
     data: {
       userId: request.jobSeekerId,
+      jobId: request.job.jobId,
       title:
         status === 'APPROVED'
           ? 'Таны хүсэлт батлагдлаа'
@@ -240,6 +244,7 @@ export const updateRequestStatus = async (
           : 'REQUEST_REJECTED',
     },
   });
+  sendToUser(request.jobSeekerId, statusNotif);
 
       return approvedRequest;
     });

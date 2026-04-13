@@ -43,31 +43,27 @@ export default function RegisterPage() {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^\d{8}$/;
 
-  const handleRegister = async () => {
-    if (!role) return toast.warning('Хэрэглэгчийн төрөл сонгоно уу');
-    if (!email) return toast.warning('Имэйл хаягаа оруулна уу');
-    if (!emailRegex.test(email))
-      return toast.warning('Имэйл хаяг буруу форматтай байна');
-    if (!password) return toast.warning('Нууц үгээ оруулна уу');
-    if (!confirmPassword) return toast.warning('Нууц үгээ давтан оруулна уу');
-    if (password !== confirmPassword)
-      return toast.warning('Нууц үг таарахгүй байна');
+  const handleRegister = async (): Promise<void> => {
+    if (!role) { toast.warning('Хэрэглэгчийн төрөл сонгоно уу'); return; }
+    if (!email) { toast.warning('Имэйл хаягаа оруулна уу'); return; }
+    if (!emailRegex.test(email)) { toast.warning('Имэйл хаяг буруу форматтай байна'); return; }
+    if (!password) { toast.warning('Нууц үгээ оруулна уу'); return; }
+    if (!confirmPassword) { toast.warning('Нууц үгээ давтан оруулна уу'); return; }
+    if (password !== confirmPassword) { toast.warning('Нууц үг таарахгүй байна'); return; }
 
     if (role === 'JOB_SEEKER') {
-      if (!userName) return toast.warning('Нэрээ оруулна уу');
-      if (!jobSeekerPhone) return toast.warning('Утасны дугаараа оруулна уу');
-      if (!phoneRegex.test(jobSeekerPhone))
-        return toast.warning('Утасны дугаар 8 оронтой байх ёстой');
-      if (!birthDate) return toast.warning('Төрсөн огноогоо оруулна уу');
-      if (!gender) return toast.warning('Хүйсээ сонгоно уу');
-      if (!address) return toast.warning('Хаягаа оруулна уу');
+      if (!userName) { toast.warning('Нэрээ оруулна уу'); return; }
+      if (!jobSeekerPhone) { toast.warning('Утасны дугаараа оруулна уу'); return; }
+      if (!phoneRegex.test(jobSeekerPhone)) { toast.warning('Утасны дугаар 8 оронтой байх ёстой'); return; }
+      if (!birthDate) { toast.warning('Төрсөн огноогоо оруулна уу'); return; }
+      if (!gender) { toast.warning('Хүйсээ сонгоно уу'); return; }
+      if (!address) { toast.warning('Хаягаа оруулна уу'); return; }
     }
 
     if (role === 'EMPLOYER') {
-      if (!employerName) return toast.warning('Байгууллагын нэрээ оруулна уу');
-      if (!employerPhone) return toast.warning('Утасны дугаараа оруулна уу');
-      if (!phoneRegex.test(employerPhone))
-        return toast.warning('Утасны дугаар 8 оронтой байх ёстой');
+      if (!employerName) { toast.warning('Байгууллагын нэрээ оруулна уу'); return; }
+      if (!employerPhone) { toast.warning('Утасны дугаараа оруулна уу'); return; }
+      if (!phoneRegex.test(employerPhone)) { toast.warning('Утасны дугаар 8 оронтой байх ёстой'); return; }
     }
 
     const payload =
