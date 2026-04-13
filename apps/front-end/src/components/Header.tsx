@@ -158,11 +158,12 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-[#2872a1] flex items-center justify-center">
-            <BriefcaseBusiness size={14} className="text-white" />
+          <div className="w-9 h-9 rounded-lg bg-[#2872a1] flex items-center justify-center">
+            <BriefcaseBusiness size={18} className="text-white" />
           </div>
-          <span className="text-sm font-bold text-zinc-900 tracking-tight hidden sm:block">
-            Нэг удаагын цагийн ажил
+          <span className="text-sm font-bold text-zinc-900 tracking-tight hidden sm:block text-center">
+            Нэг удаагын цагийн ажлын <br />
+            нэгдсэн систем
           </span>
         </Link>
 
