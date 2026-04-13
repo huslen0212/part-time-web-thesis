@@ -32,6 +32,7 @@ const API_URL = 'http://localhost:3001';
 type EmployerRequest = {
   requestId: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  type: 'JOB_REQUEST' | 'JOB_INVITE';
   createdAt: string;
   workerCount: number;
   job: {
@@ -374,9 +375,21 @@ function RequestCard({
     >
       <CardContent className="p-4 space-y-3">
         <div>
-          <p className="text-sm font-semibold text-zinc-900 leading-tight">
-            {r.job.title}
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold text-zinc-900 leading-tight">
+              {r.job.title}
+            </p>
+            <span
+              className={cn(
+                'shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border',
+                r.type === 'JOB_INVITE'
+                  ? 'bg-blue-50 text-blue-600 border-blue-200'
+                  : 'bg-violet-50 text-violet-600 border-violet-200',
+              )}
+            >
+              {r.type === 'JOB_INVITE' ? 'Ажлын санал' : 'Ажлын хүсэлт'}
+            </span>
+          </div>
           <p className="text-xs text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
             {r.job.description}
           </p>
@@ -427,7 +440,7 @@ function RequestCard({
           </div>
         </div>
 
-        {r.status === 'PENDING' && onAction && (
+        {r.status === 'PENDING' && onAction && r.type === 'JOB_REQUEST' && (
           <>
             <Separator />
             <div className="flex gap-2">
