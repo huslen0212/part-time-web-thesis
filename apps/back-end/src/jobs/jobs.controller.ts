@@ -349,6 +349,58 @@ export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// GET /jobs/my-past-workers — энэ employer-ийн өмнөх ажлуудад APPROVED болсон unique ажил хайгчид
+export const getMyPastWorkers = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'EMPLOYER') {
+      return res.status(403).json({ message: 'Зөвшөөрөлгүй' });
+    }
+
+    const requests = await prisma.request.findMany({
+      where: {
+        status: 'APPROVED',
+        job: { employerId: req.user.userId },
+      },
+      distinct: ['jobSeekerId'],
+      include: {
+        jobSeeker: {
+          select: {
+            jobseekerId: true,
+            userName: true,
+            phoneNumber: true,
+            skills: true,
+            interestedCategory: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    const result = await Promise.all(
+      requests.map(async (r) => {
+        const ratings = await prisma.rating.aggregate({
+          where: { toUserId: r.jobSeekerId },
+          _avg: { score: true },
+          _count: { score: true },
+        });
+        return {
+          jobseekerId: r.jobSeeker.jobseekerId,
+          userName: r.jobSeeker.userName,
+          phoneNumber: r.jobSeeker.phoneNumber,
+          skills: r.jobSeeker.skills,
+          interestedCategory: r.jobSeeker.interestedCategory?.name ?? null,
+          avgRating: ratings._avg.score,
+          ratingCount: ratings._count.score,
+        };
+      }),
+    );
+
+    return res.json(result);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // GET /jobs/:id/my-status — current user-ийн энэ job-д request/invite байгаа эсэх
 export const getMyJobStatus = async (req: AuthRequest, res: Response) => {
   try {

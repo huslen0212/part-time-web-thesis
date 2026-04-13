@@ -162,7 +162,7 @@ export default function Header() {
             <BriefcaseBusiness size={14} className="text-white" />
           </div>
           <span className="text-sm font-bold text-zinc-900 tracking-tight hidden sm:block">
-            Part-Time Jobs
+            Нэг удаагын цагийн ажил
           </span>
         </Link>
 

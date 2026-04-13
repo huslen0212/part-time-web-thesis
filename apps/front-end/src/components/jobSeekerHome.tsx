@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -287,9 +286,9 @@ export default function JobSeekerHome() {
                         </span>
                       </div>
                     </div>
-                    <Badge className="bg-[#2872a1] text-white hover:bg-[#2872a1] text-xs font-medium rounded-full shadow-none flex items-center justify-center">
+                    <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-200">
                       {job.category?.name}
-                    </Badge>
+                    </span>
                   </div>
 
                   {/* Description */}

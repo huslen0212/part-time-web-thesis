@@ -75,6 +75,16 @@ type SeekerResult = {
 
 type CategoryOption = { value: string; label: string };
 
+type PastWorker = {
+  jobseekerId: number;
+  userName: string | null;
+  phoneNumber: string | null;
+  skills: string | null;
+  interestedCategory: string | null;
+  avgRating: number | null;
+  ratingCount: number;
+};
+
 function decodeToken(token: string): JwtPayload | null {
   try {
     return JSON.parse(atob(token.split('.')[1]));
@@ -183,10 +193,13 @@ export default function CreateJobPage() {
 
   const [createdJobId, setCreatedJobId] = useState<number | null>(null);
   const [matchModalOpen, setMatchModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState<'matching' | 'past'>('matching');
   const [seekers, setSeekers] = useState<SeekerResult[]>([]);
   const [seekerLoading, setSeekerLoading] = useState(false);
   const [filterAvailability, setFilterAvailability] = useState(true);
   const [filterCategory, setFilterCategory] = useState(false);
+  const [pastWorkers, setPastWorkers] = useState<PastWorker[]>([]);
+  const [pastWorkersLoading, setPastWorkersLoading] = useState(false);
   const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
   const [invitingId, setInvitingId] = useState<number | null>(null);
 
@@ -244,6 +257,24 @@ export default function CreateJobPage() {
     };
     fetchSeekers();
   }, [matchModalOpen, createdJobId, filterAvailability, filterCategory]);
+
+  useEffect(() => {
+    if (!matchModalOpen) return;
+    const fetchPastWorkers = async () => {
+      setPastWorkersLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/jobs/my-past-workers`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        setPastWorkers(await res.json());
+      } catch {
+        toast.error('Өмнөх ажилчдыг ачаалж чадсангүй');
+      } finally {
+        setPastWorkersLoading(false);
+      }
+    };
+    fetchPastWorkers();
+  }, [matchModalOpen]);
 
   const applyTemplate = (job: JobTemplate) => {
     setTitle(job.title);
@@ -763,141 +794,267 @@ export default function CreateJobPage() {
         <DialogContent className="max-w-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-zinc-900">
-              Тохирох ажил хайгчид
+              Ажил хайгчид
             </DialogTitle>
           </DialogHeader>
 
-          {/* Filters */}
-          <div className="flex items-center gap-3 flex-wrap">
+          {/* Tabs */}
+          <div className="flex gap-1 p-1 bg-zinc-100 rounded-xl">
             <button
-              onClick={() => setFilterAvailability((v) => !v)}
+              onClick={() => setModalTab('matching')}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors select-none',
-                filterAvailability
-                  ? 'bg-[#2872a1] border-[#2872a1] text-white'
-                  : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300',
+                'flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                modalTab === 'matching'
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700',
               )}
             >
-              <Clock size={14} />
-              Цагийн хуваарь
+              Тохирох ажил хайгчид
             </button>
             <button
-              onClick={() => setFilterCategory((v) => !v)}
+              onClick={() => setModalTab('past')}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors select-none',
-                filterCategory
-                  ? 'bg-[#2872a1] border-[#2872a1] text-white'
-                  : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300',
+                'flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                modalTab === 'past'
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700',
               )}
             >
-              <Briefcase size={14} />
-              Ажлын төрөл
+              Миний ажил хийлгэсэн ажилчид
             </button>
-            <span className="ml-auto text-xs text-zinc-400">
-              {seekerLoading ? (
-                <Loader2 size={13} className="animate-spin inline" />
-              ) : (
-                `${seekers.length} хүн олдлоо`
-              )}
-            </span>
           </div>
 
-          <Separator />
-
-          {/* Seeker list */}
-          <div className="flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-1">
-            {seekerLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="animate-spin text-zinc-300" size={28} />
-              </div>
-            ) : seekers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-zinc-400 gap-2">
-                <Briefcase size={30} />
-                <p className="text-sm">Тохирох ажил хайгч олдсонгүй</p>
-              </div>
-            ) : (
-              seekers.map((s) => (
-                <div
-                  key={s.jobseekerId}
-                  className="flex flex-col gap-3 p-4 rounded-xl border border-zinc-200 bg-white hover:border-[#CBDDE9] transition-colors"
+          {/* ── Tab: Тохирох ажил хайгчид ── */}
+          {modalTab === 'matching' && (
+            <>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => setFilterAvailability((v) => !v)}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors select-none',
+                    filterAvailability
+                      ? 'bg-[#2872a1] border-[#2872a1] text-white'
+                      : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300',
+                  )}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-sm font-semibold text-zinc-900">
-                        {s.userName}
-                      </p>
-                      {s.interestedCategory && (
-                        <Badge className="w-fit bg-[#2872a1] text-white text-xs font-medium hover:bg-[#1f5c82]">
-                          {s.interestedCategory}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      {s.avgRating !== null ? (
-                        <>
-                          <StarRating score={s.avgRating} />
-                          <span className="text-xs text-zinc-500">
-                            {s.avgRating} ({s.ratingCount} үнэлгээ)
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-xs text-zinc-400">
-                          Үнэлгээ байхгүй
-                        </span>
-                      )}
-                    </div>
+                  <Clock size={14} />
+                  Цагийн хуваарь
+                </button>
+                <button
+                  onClick={() => setFilterCategory((v) => !v)}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors select-none',
+                    filterCategory
+                      ? 'bg-[#2872a1] border-[#2872a1] text-white'
+                      : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300',
+                  )}
+                >
+                  <Briefcase size={14} />
+                  Ажлын төрөл
+                </button>
+                <span className="ml-auto text-xs text-zinc-400">
+                  {seekerLoading ? (
+                    <Loader2 size={13} className="animate-spin inline" />
+                  ) : (
+                    `${seekers.length} хүн олдлоо`
+                  )}
+                </span>
+              </div>
+
+              <Separator />
+
+              <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
+                {seekerLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="animate-spin text-zinc-300" size={28} />
                   </div>
-                  {s.skills && (
-                    <>
-                      <Separator />
-                      <p className="text-xs text-zinc-500 leading-relaxed">
-                        {s.skills}
-                      </p>
-                    </>
-                  )}
-                  {s.availabilities.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="flex flex-wrap gap-1.5">
-                        {s.availabilities.map((a, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-100 text-zinc-600 text-xs font-medium"
-                          >
-                            <Clock size={10} />
-                            {DAY_NAMES[a.day]} {fmtTime(a.startTime)}–
-                            {fmtTime(a.endTime)}
-                          </span>
-                        ))}
+                ) : seekers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-zinc-400 gap-2">
+                    <Briefcase size={30} />
+                    <p className="text-sm">Тохирох ажил хайгч олдсонгүй</p>
+                  </div>
+                ) : (
+                  seekers.map((s) => (
+                    <div
+                      key={s.jobseekerId}
+                      className="flex flex-col gap-3 p-4 rounded-xl border border-zinc-200 bg-white hover:border-[#CBDDE9] transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <p className="text-sm font-semibold text-zinc-900">
+                            {s.userName}
+                          </p>
+                          {s.interestedCategory && (
+                            <Badge className="w-fit bg-[#2872a1] text-white text-xs font-medium hover:bg-[#1f5c82]">
+                              {s.interestedCategory}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          {s.avgRating !== null ? (
+                            <>
+                              <StarRating score={s.avgRating} />
+                              <span className="text-xs text-zinc-500">
+                                {s.avgRating} ({s.ratingCount} үнэлгээ)
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-zinc-400">
+                              Үнэлгээ байхгүй
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </>
+                      {s.skills && (
+                        <>
+                          <Separator />
+                          <p className="text-xs text-zinc-500 leading-relaxed">
+                            {s.skills}
+                          </p>
+                        </>
+                      )}
+                      {s.availabilities.length > 0 && (
+                        <>
+                          <Separator />
+                          <div className="flex flex-wrap gap-1.5">
+                            {s.availabilities.map((a, i) => (
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-zinc-100 text-zinc-600 text-xs font-medium"
+                              >
+                                <Clock size={10} />
+                                {DAY_NAMES[a.day]} {fmtTime(a.startTime)}–
+                                {fmtTime(a.endTime)}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      <Button
+                        size="sm"
+                        disabled={
+                          invitedIds.has(s.jobseekerId) ||
+                          invitingId === s.jobseekerId
+                        }
+                        onClick={() => handleInvite(s.jobseekerId)}
+                        className={cn(
+                          'w-full h-8 text-xs rounded-xl font-medium transition-colors',
+                          invitedIds.has(s.jobseekerId)
+                            ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                            : 'bg-[#2872a1] hover:bg-[#1f5c82] text-white',
+                        )}
+                      >
+                        {invitingId === s.jobseekerId ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : invitedIds.has(s.jobseekerId) ? (
+                          '✓ Ажлын санал илгээгдлээ'
+                        ) : (
+                          'Санал илгээх'
+                        )}
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── Tab: Миний ажил хийлгэсэн ажилчид ── */}
+          {modalTab === 'past' && (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-zinc-400">
+                  Өмнөх ажлуудад зөвшөөрөгдсөн ажилчид
+                </p>
+                <span className="text-xs text-zinc-400">
+                  {pastWorkersLoading ? (
+                    <Loader2 size={13} className="animate-spin inline" />
+                  ) : (
+                    `${pastWorkers.length} хүн`
                   )}
-                  <Button
-                    size="sm"
-                    disabled={
-                      invitedIds.has(s.jobseekerId) ||
-                      invitingId === s.jobseekerId
-                    }
-                    onClick={() => handleInvite(s.jobseekerId)}
-                    className={cn(
-                      'w-full h-8 text-xs rounded-xl font-medium transition-colors',
-                      invitedIds.has(s.jobseekerId)
-                        ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 hover:bg-emerald-50'
-                        : 'bg-[#2872a1] hover:bg-[#1f5c82] text-white',
-                    )}
-                  >
-                    {invitingId === s.jobseekerId ? (
-                      <Loader2 size={13} className="animate-spin" />
-                    ) : invitedIds.has(s.jobseekerId) ? (
-                      '✓ Ажлын санал илгээгдлээ'
-                    ) : (
-                      'Санал илгээх'
-                    )}
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
+                </span>
+              </div>
+
+              <Separator />
+
+              <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
+                {pastWorkersLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="animate-spin text-zinc-300" size={28} />
+                  </div>
+                ) : pastWorkers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-zinc-400 gap-2">
+                    <Briefcase size={30} />
+                    <p className="text-sm">Өмнөх ажилчид байхгүй байна</p>
+                  </div>
+                ) : (
+                  pastWorkers.map((s) => (
+                    <div
+                      key={s.jobseekerId}
+                      className="flex flex-col gap-3 p-4 rounded-xl border border-zinc-200 bg-white hover:border-[#CBDDE9] transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <p className="text-sm font-semibold text-zinc-900">
+                            {s.userName || 'Нэргүй'}
+                          </p>
+                          {s.interestedCategory && (
+                            <Badge className="w-fit bg-[#2872a1] text-white text-xs font-medium hover:bg-[#1f5c82]">
+                              {s.interestedCategory}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          {s.avgRating !== null ? (
+                            <>
+                              <StarRating score={s.avgRating} />
+                              <span className="text-xs text-zinc-500">
+                                {s.avgRating} ({s.ratingCount} үнэлгээ)
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-zinc-400">
+                              Үнэлгээ байхгүй
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {s.skills && (
+                        <>
+                          <Separator />
+                          <p className="text-xs text-zinc-500 leading-relaxed">
+                            {s.skills}
+                          </p>
+                        </>
+                      )}
+                      <Button
+                        size="sm"
+                        disabled={
+                          invitedIds.has(s.jobseekerId) ||
+                          invitingId === s.jobseekerId
+                        }
+                        onClick={() => handleInvite(s.jobseekerId)}
+                        className={cn(
+                          'w-full h-8 text-xs rounded-xl font-medium transition-colors',
+                          invitedIds.has(s.jobseekerId)
+                            ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                            : 'bg-[#2872a1] hover:bg-[#1f5c82] text-white',
+                        )}
+                      >
+                        {invitingId === s.jobseekerId ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : invitedIds.has(s.jobseekerId) ? (
+                          '✓ Ажлын санал илгээгдлээ'
+                        ) : (
+                          'Санал илгээх'
+                        )}
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
 
           <DialogFooter>
             <Button

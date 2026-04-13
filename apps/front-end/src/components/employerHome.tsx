@@ -384,7 +384,7 @@ function RequestCard({
                 'shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border',
                 r.type === 'JOB_INVITE'
                   ? 'bg-blue-50 text-blue-600 border-blue-200'
-                  : 'bg-violet-50 text-violet-600 border-violet-200',
+                  : 'bg-blue-50 text-blue-600 border-blue-200',
               )}
             >
               {r.type === 'JOB_INVITE' ? 'Ажлын санал' : 'Ажлын хүсэлт'}

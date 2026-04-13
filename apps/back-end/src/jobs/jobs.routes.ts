@@ -9,6 +9,7 @@ import {
   getMatchingSeekers,
   inviteSeeker,
   getMyJobStatus,
+  getMyPastWorkers,
 } from './jobs.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -16,6 +17,7 @@ const router = Router();
 
 router.get('/', getJobs);
 router.get('/my', authenticate, getMyJobs);
+router.get('/my-past-workers', authenticate, getMyPastWorkers);
 router.get('/nearby', getNearbyJobs);
 router.get('/:id/seekers', authenticate, getMatchingSeekers);
 router.get('/:id/my-status', authenticate, getMyJobStatus);
