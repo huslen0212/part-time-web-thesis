@@ -13,7 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { TimeInput } from '@mantine/dates';
+import { TimePicker } from '@mantine/dates';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -35,7 +35,7 @@ interface ApiJob {
   title: string;
   description: string;
   location: string;
-  category: string;
+  category: { categoryId: number; name: string };
   salary: number;
   startTime: string;
   endTime: string;
@@ -217,8 +217,8 @@ export default function CalendarPage() {
         const jobs = Array.isArray(data) ? data : [];
         setApiJobs(jobs);
         const unique = Array.from(
-          new Set(jobs.map((j) => j.category).filter(Boolean)),
-        );
+          new Set(jobs.map((j) => j.category?.name).filter(Boolean)),
+        ) as string[];
         setCategories(unique);
       })
       .catch(console.error)
@@ -265,7 +265,7 @@ export default function CalendarPage() {
         if (start.toDateString() !== targetDate.toDateString()) return;
 
         // Category filter
-        if (input.type && job.category !== input.type) return;
+        if (input.type && job.category?.name !== input.type) return;
 
         const js = dateToFloat(start);
         const je = dateToFloat(end);
@@ -278,7 +278,7 @@ export default function CalendarPage() {
           id: job.jobId,
           title: job.title,
           company: job.employer.employerName || '—',
-          category: job.category,
+          category: job.category?.name ?? '',
           description: job.description,
           location: job.location,
           salary: job.salary,
@@ -417,13 +417,14 @@ export default function CalendarPage() {
                           <span className="text-[11px] text-zinc-400 font-medium">
                             Эхлэх цаг
                           </span>
-                          <TimeInput
+                          <TimePicker
                             value={row.start}
-                            onChange={(e) => {
+                            onChange={(value) => {
                               const cp = [...inputs];
-                              cp[idx].start = e.currentTarget.value;
+                              cp[idx].start = value;
                               setInputs(cp);
                             }}
+                            format="24h"
                             classNames={{
                               input: 'rounded-xl border-zinc-200 text-sm h-9',
                             }}
@@ -433,13 +434,14 @@ export default function CalendarPage() {
                           <span className="text-[11px] text-zinc-400 font-medium">
                             Дуусах цаг
                           </span>
-                          <TimeInput
+                          <TimePicker
                             value={row.end}
-                            onChange={(e) => {
+                            onChange={(value) => {
                               const cp = [...inputs];
-                              cp[idx].end = e.currentTarget.value;
+                              cp[idx].end = value;
                               setInputs(cp);
                             }}
+                            format="24h"
                             classNames={{
                               input: 'rounded-xl border-zinc-200 text-sm h-9',
                             }}
