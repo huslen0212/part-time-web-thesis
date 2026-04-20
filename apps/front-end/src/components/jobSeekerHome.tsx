@@ -52,21 +52,20 @@ const SEARCH_TABS: {
   { type: 'location', label: 'Байршлаар', icon: <MapPin size={14} /> },
 ];
 
+const RADIUS_OPTIONS = [300, 500, 1000, 2000];
+
 function formatDate(dateString: string) {
   const date = new Date(dateString);
-
   const formattedDate = date.toLocaleDateString('en-US', {
     month: '2-digit',
     day: '2-digit',
     year: 'numeric',
   });
-
   const formattedTime = date.toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   });
-
   return `${formattedDate} ${formattedTime}`;
 }
 
@@ -80,6 +79,7 @@ export default function JobSeekerHome() {
   const [searchValue, setSearchValue] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [categories, setCategories] = useState<string[]>([]);
+  const [radius, setRadius] = useState(500);
 
   useEffect(() => {
     fetch(`${API_URL}/jobs`)
@@ -120,6 +120,11 @@ export default function JobSeekerHome() {
     setNearbyJobs([]);
   };
 
+  const handleRadiusChange = (r: number) => {
+    setRadius(r);
+    setNearbyJobs([]);
+  };
+
   return (
     <section className="min-h-screen bg-zinc-50">
       <div className="max-w-7xl mx-auto px-6 py-10">
@@ -142,7 +147,7 @@ export default function JobSeekerHome() {
                   className={cn(
                     'flex items-center gap-1.5 px-5 py-2 rounded-full border text-sm font-medium transition-all',
                     searchType === type
-                      ? 'bg-[#2872a1] text-white'
+                      ? 'bg-[#2872a1] text-white border-[#2872a1]'
                       : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400 hover:text-zinc-900',
                   )}
                 >
@@ -212,12 +217,34 @@ export default function JobSeekerHome() {
 
             {searchType === 'location' && (
               <div className="w-full max-w-3xl mx-auto">
+                {/* Radius сонгогч */}
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <span className="text-sm text-zinc-500">Хайлтын радиус:</span>
+                  <div className="flex gap-1.5">
+                    {RADIUS_OPTIONS.map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => handleRadiusChange(r)}
+                        className={cn(
+                          'px-3 py-1 rounded-lg border text-xs font-medium transition-all',
+                          radius === r
+                            ? 'bg-[#2872a1] text-white border-[#2872a1]'
+                            : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400',
+                        )}
+                      >
+                        {r >= 1000 ? `${r / 1000}км` : `${r}м`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="rounded-2xl overflow-hidden border border-zinc-200">
                   <NearbySearchMap
+                    radius={radius}
                     onSelect={async (lat, lng) => {
                       try {
                         const res = await fetch(
-                          `${API_URL}/jobs/nearby?lat=${lat}&lng=${lng}&radius=500`,
+                          `${API_URL}/jobs/nearby?lat=${lat}&lng=${lng}&radius=${radius}`,
                         );
                         const data = await res.json();
                         setNearbyJobs(
@@ -234,7 +261,9 @@ export default function JobSeekerHome() {
                   />
                 </div>
                 <p className="text-xs text-zinc-400 mt-2.5">
-                  Газрын зураг дээр дарж 500м радиус доторх ажлыг харах
+                  Газрын зураг дээр дарж{' '}
+                  {radius >= 1000 ? `${radius / 1000}км` : `${radius}м`} радиус
+                  доторх ажлыг харах
                 </p>
               </div>
             )}

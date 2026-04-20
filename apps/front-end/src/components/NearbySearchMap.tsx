@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 type Props = {
   onSelect: (lat: number, lng: number) => void;
+  radius: number;
 };
 
 const defaultCenter = {
@@ -12,7 +13,7 @@ const defaultCenter = {
   lng: 106.9177,
 };
 
-export default function NearbySearchMap({ onSelect }: Props) {
+export default function NearbySearchMap({ onSelect, radius }: Props) {
   const [marker, setMarker] = useState<google.maps.LatLngLiteral | null>(null);
 
   const { isLoaded } = useJsApiLoader({

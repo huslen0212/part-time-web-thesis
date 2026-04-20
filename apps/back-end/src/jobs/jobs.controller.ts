@@ -257,7 +257,6 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
 };
 
 // GET /jobs/:id/seekers?filterAvailability=true&filterCategory=true
-// GET /jobs/:id/seekers?filterAvailability=true&filterCategory=true
 export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
