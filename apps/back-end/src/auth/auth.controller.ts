@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { signToken } from './jwt';
 
-/// REGISTER
+// POST /auth/register
+//shine hereglegch burtgeh
 export const register = async (req: Request, res: Response) => {
   try {
     const { user, jobSeeker, employer } = req.body;
@@ -38,7 +39,9 @@ export const register = async (req: Request, res: Response) => {
             jobseekerId: createdUser.userId,
             userName: jobSeeker?.userName ?? null,
             phoneNumber: jobSeeker?.phoneNumber ?? null,
-            birthDate: jobSeeker?.birthDate ? new Date(jobSeeker.birthDate) : null,
+            birthDate: jobSeeker?.birthDate
+              ? new Date(jobSeeker.birthDate)
+              : null,
             gender: jobSeeker?.gender ?? null,
             address: jobSeeker?.address ?? null,
           },
@@ -70,7 +73,8 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-// LOGIN
+// POST /auth/login
+//amjilttai nevtervel JWT token butsaana
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -79,7 +83,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Бүх талбарыг бөглөнө үү' });
     }
 
-     // user + related table (jobSeeker/employer) hamt haina
+    // user + related table (jobSeeker/employer) hamt haina
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -93,13 +97,13 @@ export const login = async (req: Request, res: Response) => {
     }
 
     if (user.password !== password) {
-      return res.status(400).json({ message: 'Имэйл эсвэл нууц үг буруу байна' });
+      return res
+        .status(400)
+        .json({ message: 'Имэйл эсвэл нууц үг буруу байна' });
     }
 
     const userName =
-      user.jobSeeker?.userName ??
-      user.employer?.employerName ??
-      user.email;
+      user.jobSeeker?.userName ?? user.employer?.employerName ?? user.email;
 
     const token = signToken({
       userId: user.userId,

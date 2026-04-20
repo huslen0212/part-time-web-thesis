@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import { sendToUser } from '../notifications/sse';
 
 // POST /jobs
+//ajil nemne
 export const createJob = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
@@ -79,6 +80,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
 };
 
 // GET /jobs
+//db-ees ajluudiin medeelliig avna
 export const getJobs = async (_req: Request, res: Response) => {
   try {
     const jobs = await prisma.job.findMany({
@@ -97,6 +99,7 @@ export const getJobs = async (_req: Request, res: Response) => {
 };
 
 // GET /jobs/:id
+//id-aар ajliin medeelliig avna
 export const getJobById = async (req: Request, res: Response) => {
   try {
     const jobId = Number(req.params.id);
@@ -131,6 +134,7 @@ export const getJobById = async (req: Request, res: Response) => {
 };
 
 // GET /jobs/my
+//nevtersen ajil olgogchiin ooriin ajluudiig avna
 export const getMyJobs = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
@@ -164,6 +168,7 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
 };
 
 // DELETE /jobs/template/:id
+//ajil template bolgoj baisan job-iig template bish bolgono
 export const removeTemplate = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
@@ -200,6 +205,7 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
 };
 
 // GET /jobs/nearby?lat=..&lng=..&radius=..
+//uurt oiroltsoo ajluudiig haina
 export const getNearbyJobs = async (req: Request, res: Response) => {
   try {
     const latParam = req.query.lat as string;
@@ -257,6 +263,7 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
 };
 
 // GET /jobs/:id/seekers?filterAvailability=true&filterCategory=true
+//ajil olgogch ajil haigciig filter hiij harah
 export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
@@ -355,6 +362,7 @@ export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
 };
 
 // GET /jobs/my-past-workers
+//ajil olgogchiin APPROVED request-tei, davhardahgui ajil haigchdyg rating-tei hamt butsaana
 export const getMyPastWorkers = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
@@ -410,7 +418,8 @@ export const getMyPastWorkers = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// GET /jobs/:id/my-status — current user-ийн энэ job-д request/invite байгаа эсэх
+// GET /jobs/:id/my-status
+//current hereglegch ene ajild request ilgeesen esvel invite avsan eseh shalgana
 export const getMyJobStatus = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
@@ -437,6 +446,7 @@ export const getMyJobStatus = async (req: AuthRequest, res: Response) => {
 };
 
 // POST /jobs/:id/invite/:seekerId
+//ajil olgogch ajil haigchid JOB_INVITE ilgeej notification yavuulna
 export const inviteSeeker = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {

@@ -124,6 +124,8 @@ export const getEmployerRequests = async (
   }
 };
 
+// GET /requests/me
+//ajil haigchiin ooriin ilgeesen huseltiin jagsaalt avah
 export const getMyRequests = async (
   req: AuthRequest,
   res: Response
@@ -160,6 +162,9 @@ export const getMyRequests = async (
   res.json(requests);
 };
 
+// PATCH /requests/:requestId
+//ajil olgogch huselt batalgaajuulah esvel tatgalzah (APPROVED/REJECTED)
+//APPROVED bol davhardsan hugatsaatai oher huseltüüdiig CANCEL bolgono
 export const updateRequestStatus = async (
   req: AuthRequest,
   res: Response

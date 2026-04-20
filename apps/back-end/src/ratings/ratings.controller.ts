@@ -1,5 +1,3 @@
-// apps/back-end/src/ratings/ratings.controller.ts
-
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 
@@ -15,9 +13,11 @@ interface PendingItem {
   toUserId: number;
 }
 
+// POST /ratings
+//ajil duussanii daraa neg negendee unelgee uguh (1-5 od), davhardahgui
 export const createRating = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const authReq = req as AuthRequest;
@@ -25,25 +25,26 @@ export const createRating = async (
     const fromUserId = authReq.user?.userId;
 
     if (!fromUserId) return res.status(401).json({ message: 'Unauthorized' });
-    if (!jobId || !toUserId || !score) return res.status(400).json({ message: 'Missing fields' });
-    if (score < 1 || score > 5) return res.status(400).json({ message: 'Score must be between 1-5' });
+    if (!jobId || !toUserId || !score)
+      return res.status(400).json({ message: 'Missing fields' });
+    if (score < 1 || score > 5)
+      return res.status(400).json({ message: 'Score must be between 1-5' });
 
     const job = await prisma.job.findUnique({ where: { jobId } });
     if (!job) return res.status(404).json({ message: 'Job not found' });
-    if (new Date(job.endTime) > new Date()) return res.status(400).json({ message: 'Job not finished yet' });
+    if (new Date(job.endTime) > new Date())
+      return res.status(400).json({ message: 'Job not finished yet' });
 
     const request = await prisma.request.findFirst({
       where: {
         jobId,
         status: 'APPROVED',
-        OR: [
-          { jobSeekerId: fromUserId },
-          { job: { employerId: fromUserId } },
-        ],
+        OR: [{ jobSeekerId: fromUserId }, { job: { employerId: fromUserId } }],
       },
     });
 
-    if (!request) return res.status(403).json({ message: 'Not allowed to rate' });
+    if (!request)
+      return res.status(403).json({ message: 'Not allowed to rate' });
 
     const existing = await prisma.rating.findUnique({
       where: { fromUserId_toUserId_jobId: { fromUserId, toUserId, jobId } },
@@ -62,14 +63,19 @@ export const createRating = async (
   }
 };
 
+// GET /ratings/pending
+//unelgee uguugui, duussan ajluudiig olj pending jagsaalt butsaana
 export const getPendingRatings = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
-    if (!userId) { res.status(401).json({ message: 'Unauthorized' }); return; }
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
 
     const requests = await prisma.request.findMany({
       where: {
@@ -85,14 +91,22 @@ export const getPendingRatings = async (
     for (const r of requests) {
       if (new Date(r.job.endTime) > now) continue;
 
-      const toUserId = r.jobSeekerId === userId ? r.job.employerId : r.jobSeekerId;
+      const toUserId =
+        r.jobSeekerId === userId ? r.job.employerId : r.jobSeekerId;
       if (!toUserId) continue;
 
       const exists = await prisma.rating.findUnique({
-        where: { fromUserId_toUserId_jobId: { fromUserId: userId, toUserId, jobId: r.jobId } },
+        where: {
+          fromUserId_toUserId_jobId: {
+            fromUserId: userId,
+            toUserId,
+            jobId: r.jobId,
+          },
+        },
       });
 
-      if (!exists) pending.push({ jobId: r.jobId, jobTitle: r.job.title, toUserId });
+      if (!exists)
+        pending.push({ jobId: r.jobId, jobTitle: r.job.title, toUserId });
     }
 
     res.json(pending);
@@ -105,12 +119,15 @@ export const getPendingRatings = async (
 // GET /ratings/me  →  дундаж + тоо
 export const getUserRating = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
-    if (!userId) { res.status(401).json({ message: 'Unauthorized' }); return; }
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
 
     const ratings = await prisma.rating.findMany({
       where: { toUserId: userId },
@@ -135,12 +152,15 @@ export const getUserRating = async (
 // GET /ratings/me/details  →  дэлгэрэнгүй жагсаалт (ямар ажил, хэн үнэлсэн, comment)
 export const getMyRatingDetails = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.userId;
-    if (!userId) { res.status(401).json({ message: 'Unauthorized' }); return; }
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
 
     const ratings = await prisma.rating.findMany({
       where: { toUserId: userId },
@@ -153,7 +173,7 @@ export const getMyRatingDetails = async (
         // хэн үнэлсэн
         fromUser: {
           include: {
-            employer:  { select: { employerName: true } },
+            employer: { select: { employerName: true } },
             jobSeeker: { select: { userName: true } },
           },
         },
@@ -170,11 +190,14 @@ export const getMyRatingDetails = async (
 // GET /ratings/user/:id  →  JobSeekerHome дахь employer-ийн үнэлгээ
 export const getRatingsByUserId = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const targetUserId = Number(req.params.id);
-    if (isNaN(targetUserId)) { res.status(400).json({ message: 'Invalid user id' }); return; }
+    if (isNaN(targetUserId)) {
+      res.status(400).json({ message: 'Invalid user id' });
+      return;
+    }
 
     const ratings = await prisma.rating.findMany({
       where: { toUserId: targetUserId },
@@ -185,7 +208,7 @@ export const getRatingsByUserId = async (
         },
         fromUser: {
           include: {
-            employer:  { select: { employerName: true } },
+            employer: { select: { employerName: true } },
             jobSeeker: { select: { userName: true } },
           },
         },

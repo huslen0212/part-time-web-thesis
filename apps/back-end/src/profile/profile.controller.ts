@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 // GET /profile
+// ajil haigciin medeelel avah
 export const getMyProfile = async (
   req: AuthRequest,
   res: Response,
@@ -44,6 +45,7 @@ export const getMyProfile = async (
 };
 
 // GET /profile/jobseeker/:id  →  public
+//public ajil haigchiin medeelel + ajliin tuuh + rating-iig butsaana
 export const getPublicJobSeekerProfile = async (
   req: AuthRequest,
   res: Response,
@@ -125,6 +127,7 @@ export const getPublicJobSeekerProfile = async (
 };
 
 // PUT /profile
+// ajil haigciin medeelel zasah
 export const updateMyProfile = async (
   req: AuthRequest,
   res: Response,
@@ -190,6 +193,7 @@ export const updateMyProfile = async (
 };
 
 // POST /profile/availability
+// ajil haigciin bolomjtoi tsagiig nemj ogoh
 export const addAvailability = async (
   req: AuthRequest,
   res: Response,
@@ -227,6 +231,7 @@ export const addAvailability = async (
 };
 
 // DELETE /profile/availability/:id
+// ajil haigciin bolomjtoi tsagiig ustgah
 export const deleteAvailability = async (
   req: AuthRequest,
   res: Response,

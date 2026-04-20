@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
+// GET /employer
 //ajil olgogchiin medeelel avah
 export const getEmployerProfile = async (
   req: AuthRequest,
@@ -57,12 +58,16 @@ export const getEmployerProfile = async (
 };
 
 // GET /employer/:id  →  public
+//ajil haigchid ajil olgogchiin medeelel + ajluud + rating-iig butsaana
 export const getPublicEmployerProfile = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
   const id = Number(req.params.id);
-  if (isNaN(id)) { res.status(400).json({ message: 'Invalid id' }); return; }
+  if (isNaN(id)) {
+    res.status(400).json({ message: 'Invalid id' });
+    return;
+  }
 
   const profile = await prisma.employer.findUnique({
     where: { employerId: id },
@@ -84,7 +89,10 @@ export const getPublicEmployerProfile = async (
     },
   });
 
-  if (!profile) { res.status(404).json({ message: 'Олдсонгүй' }); return; }
+  if (!profile) {
+    res.status(404).json({ message: 'Олдсонгүй' });
+    return;
+  }
 
   const ratings = await prisma.rating.findMany({
     where: { toUserId: id },
@@ -99,9 +107,10 @@ export const getPublicEmployerProfile = async (
     },
   });
 
-  const avg = ratings.length > 0
-    ? ratings.reduce((s, r) => s + r.score, 0) / ratings.length
-    : null;
+  const avg =
+    ratings.length > 0
+      ? ratings.reduce((s, r) => s + r.score, 0) / ratings.length
+      : null;
 
   res.json({
     employerName: profile.employerName,
@@ -116,7 +125,8 @@ export const getPublicEmployerProfile = async (
   });
 };
 
-// employer profile zasah
+// PUT /employer
+//ajil olgogchiin medeelel shinchleh
 export const updateEmployerProfile = async (
   req: AuthRequest,
   res: Response,
