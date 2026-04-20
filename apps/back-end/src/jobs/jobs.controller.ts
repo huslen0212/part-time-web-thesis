@@ -449,17 +449,25 @@ export const inviteSeeker = async (req: AuthRequest, res: Response) => {
     const seeker = await prisma.jobSeeker.findUnique({
       where: { jobseekerId: seekerId },
     });
-    if (!seeker) return res.status(404).json({ message: 'Ажил хайгч олдсонгүй' });
+    if (!seeker)
+      return res.status(404).json({ message: 'Ажил хайгч олдсонгүй' });
 
     const existing = await prisma.request.findUnique({
       where: { jobSeekerId_jobId: { jobSeekerId: seekerId, jobId } },
     });
     if (existing) {
-      return res.status(409).json({ message: 'Ажлын санал аль хэдийн илгээгдсэн' });
+      return res
+        .status(409)
+        .json({ message: 'Ажлын санал аль хэдийн илгээгдсэн' });
     }
 
     await prisma.request.create({
-      data: { jobSeekerId: seekerId, jobId, type: 'JOB_INVITE', status: 'PENDING' },
+      data: {
+        jobSeekerId: seekerId,
+        jobId,
+        type: 'JOB_INVITE',
+        status: 'PENDING',
+      },
     });
 
     const inviteNotif = await prisma.notification.create({

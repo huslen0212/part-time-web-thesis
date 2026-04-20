@@ -3,7 +3,10 @@ import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 // GET /profile
-export const getMyProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getMyProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   const user = req.user;
 
   if (!user || user.role !== 'JOB_SEEKER') {
@@ -39,9 +42,15 @@ export const getMyProfile = async (req: AuthRequest, res: Response): Promise<voi
 };
 
 // GET /profile/jobseeker/:id  →  public
-export const getPublicJobSeekerProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getPublicJobSeekerProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   const id = Number(req.params.id);
-  if (isNaN(id)) { res.status(400).json({ message: 'Invalid id' }); return; }
+  if (isNaN(id)) {
+    res.status(400).json({ message: 'Invalid id' });
+    return;
+  }
 
   const seeker = await prisma.jobSeeker.findUnique({
     where: { jobseekerId: id },
@@ -57,7 +66,10 @@ export const getPublicJobSeekerProfile = async (req: AuthRequest, res: Response)
     },
   });
 
-  if (!seeker) { res.status(404).json({ message: 'Олдсонгүй' }); return; }
+  if (!seeker) {
+    res.status(404).json({ message: 'Олдсонгүй' });
+    return;
+  }
 
   const requests = await prisma.request.findMany({
     where: { jobSeekerId: id, status: 'APPROVED' },
@@ -91,9 +103,10 @@ export const getPublicJobSeekerProfile = async (req: AuthRequest, res: Response)
     },
   });
 
-  const avg = ratings.length > 0
-    ? ratings.reduce((s, r) => s + r.score, 0) / ratings.length
-    : null;
+  const avg =
+    ratings.length > 0
+      ? ratings.reduce((s, r) => s + r.score, 0) / ratings.length
+      : null;
 
   res.json({
     ...seeker,
@@ -107,9 +120,21 @@ export const getPublicJobSeekerProfile = async (req: AuthRequest, res: Response)
 };
 
 // PUT /profile
-export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateMyProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   const user = req.user;
-  const { email, userName, phoneNumber, birthDate, gender, address, skills, interestedCategoryName } = req.body;
+  const {
+    email,
+    userName,
+    phoneNumber,
+    birthDate,
+    gender,
+    address,
+    skills,
+    interestedCategoryName,
+  } = req.body;
 
   if (!user || user.role !== 'JOB_SEEKER') {
     res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
@@ -153,7 +178,10 @@ export const updateMyProfile = async (req: AuthRequest, res: Response): Promise<
 };
 
 // POST /profile/availability
-export const addAvailability = async (req: AuthRequest, res: Response): Promise<void> => {
+export const addAvailability = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   const user = req.user;
   if (!user || user.role !== 'JOB_SEEKER') {
     res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
@@ -168,7 +196,9 @@ export const addAvailability = async (req: AuthRequest, res: Response): Promise<
   }
 
   if (new Date(endTime) <= new Date(startTime)) {
-    res.status(400).json({ message: 'Дуусах цаг эхлэх цагаас хойш байх ёстой' });
+    res
+      .status(400)
+      .json({ message: 'Дуусах цаг эхлэх цагаас хойш байх ёстой' });
     return;
   }
 
@@ -185,7 +215,10 @@ export const addAvailability = async (req: AuthRequest, res: Response): Promise<
 };
 
 // DELETE /profile/availability/:id
-export const deleteAvailability = async (req: AuthRequest, res: Response): Promise<void> => {
+export const deleteAvailability = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   const user = req.user;
   if (!user || user.role !== 'JOB_SEEKER') {
     res.status(403).json({ message: 'Зөвхөн ажил хайгч' });
