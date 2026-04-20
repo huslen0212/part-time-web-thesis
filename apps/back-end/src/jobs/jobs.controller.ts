@@ -257,6 +257,7 @@ export const getNearbyJobs = async (req: Request, res: Response) => {
 };
 
 // GET /jobs/:id/seekers?filterAvailability=true&filterCategory=true
+// GET /jobs/:id/seekers?filterAvailability=true&filterCategory=true
 export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
@@ -280,13 +281,17 @@ export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
 
     const where: Record<string, unknown> = {};
     if (filterCategory) {
-      where.interestedCategoryId = job.categoryId;
+      where.interestedCategories = {
+        some: { categoryId: job.categoryId },
+      };
     }
 
     let seekers = await prisma.jobSeeker.findMany({
       where,
       include: {
-        interestedCategory: true,
+        interestedCategories: {
+          include: { category: { select: { name: true } } },
+        },
         availabilities: true,
         user: {
           include: { ratingsReceived: { select: { score: true } } },
@@ -298,11 +303,10 @@ export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
       const jobStart = new Date(job.startTime);
       const jobEnd = new Date(job.endTime);
 
-      // job span-д орох бүх weekday цуглуулна
       const jobDays = new Set<number>();
       const cursor = new Date(jobStart);
       while (cursor <= jobEnd) {
-        jobDays.add(cursor.getDay()); // 0=Sun..6=Sat
+        jobDays.add(cursor.getDay());
         cursor.setDate(cursor.getDate() + 1);
       }
 
@@ -326,7 +330,9 @@ export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
         jobseekerId: s.jobseekerId,
         userName: s.userName ?? 'Нэргүй',
         skills: s.skills ?? null,
-        interestedCategory: s.interestedCategory?.name ?? null,
+        interestedCategories: s.interestedCategories.map(
+          (jc) => jc.category.name,
+        ),
         avgRating:
           scores.length > 0
             ? Math.round(
@@ -349,7 +355,7 @@ export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// GET /jobs/my-past-workers — энэ employer-ийн өмнөх ажлуудад APPROVED болсон unique ажил хайгчид
+// GET /jobs/my-past-workers
 export const getMyPastWorkers = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user || req.user.role !== 'EMPLOYER') {
@@ -369,7 +375,9 @@ export const getMyPastWorkers = async (req: AuthRequest, res: Response) => {
             userName: true,
             phoneNumber: true,
             skills: true,
-            interestedCategory: { select: { name: true } },
+            interestedCategories: {
+              include: { category: { select: { name: true } } },
+            },
           },
         },
       },
@@ -387,7 +395,9 @@ export const getMyPastWorkers = async (req: AuthRequest, res: Response) => {
           userName: r.jobSeeker.userName,
           phoneNumber: r.jobSeeker.phoneNumber,
           skills: r.jobSeeker.skills,
-          interestedCategory: r.jobSeeker.interestedCategory?.name ?? null,
+          interestedCategories: r.jobSeeker.interestedCategories.map(
+            (jc) => jc.category.name,
+          ),
           avgRating: ratings._avg.score,
           ratingCount: ratings._count.score,
         };

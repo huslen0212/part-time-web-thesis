@@ -18,7 +18,9 @@ export const getMyProfile = async (
     where: { jobseekerId: user.userId },
     include: {
       user: { select: { email: true } },
-      interestedCategory: { select: { categoryId: true, name: true } },
+      interestedCategories: {
+        include: { category: { select: { categoryId: true, name: true } } },
+      },
       availabilities: { orderBy: [{ day: 'asc' }, { startTime: 'asc' }] },
     },
   });
@@ -36,7 +38,7 @@ export const getMyProfile = async (
     gender: profile.gender,
     address: profile.address,
     skills: profile.skills,
-    interestedCategory: profile.interestedCategory,
+    interestedCategories: profile.interestedCategories.map((jc) => jc.category),
     availabilities: profile.availabilities,
   });
 };
@@ -61,7 +63,9 @@ export const getPublicJobSeekerProfile = async (
       address: true,
       skills: true,
       createdAt: true,
-      interestedCategory: { select: { categoryId: true, name: true } },
+      interestedCategories: {
+        include: { category: { select: { categoryId: true, name: true } } },
+      },
       availabilities: { orderBy: [{ day: 'asc' }, { startTime: 'asc' }] },
     },
   });
@@ -110,6 +114,7 @@ export const getPublicJobSeekerProfile = async (
 
   res.json({
     ...seeker,
+    interestedCategories: seeker.interestedCategories.map((jc) => jc.category),
     workHistory: requests,
     rating: {
       average: avg ? Math.round(avg * 10) / 10 : null,
@@ -133,7 +138,7 @@ export const updateMyProfile = async (
     gender,
     address,
     skills,
-    interestedCategoryName,
+    interestedCategoryNames,
   } = req.body;
 
   if (!user || user.role !== 'JOB_SEEKER') {
@@ -141,17 +146,21 @@ export const updateMyProfile = async (
     return;
   }
 
-  // interestedCategory-g neriig oor connectOrCreate hiine
-  let interestedCategoryId: number | undefined = undefined;
-  if (interestedCategoryName) {
-    const cat = await prisma.category.upsert({
-      where: { name: interestedCategoryName },
-      create: { name: interestedCategoryName },
-      update: {},
-    });
-    interestedCategoryId = cat.categoryId;
-  } else if (interestedCategoryName === null) {
-    interestedCategoryId = undefined;
+  let categoryIds: number[] = [];
+  if (
+    Array.isArray(interestedCategoryNames) &&
+    interestedCategoryNames.length > 0
+  ) {
+    const cats = await Promise.all(
+      interestedCategoryNames.map((name: string) =>
+        prisma.category.upsert({
+          where: { name },
+          create: { name },
+          update: {},
+        }),
+      ),
+    );
+    categoryIds = cats.map((c) => c.categoryId);
   }
 
   await prisma.jobSeeker.update({
@@ -163,7 +172,10 @@ export const updateMyProfile = async (
       gender: gender || undefined,
       address: address || undefined,
       skills: skills !== undefined ? skills : undefined,
-      interestedCategoryId: interestedCategoryId,
+      interestedCategories: {
+        deleteMany: {},
+        create: categoryIds.map((categoryId) => ({ categoryId })),
+      },
     },
   });
 

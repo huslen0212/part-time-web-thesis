@@ -78,6 +78,18 @@ model JobSeeker {
   requests Request[]
 
   availabilities AvailabilityTime[]
+  interestedCategories JobSeekerCategory[]
+}
+
+/* ================= INTERESTED CATEGORIES ================= */
+model JobSeekerCategory {
+  jobseekerId Int
+  categoryId  Int
+
+  jobSeeker JobSeeker @relation(fields: [jobseekerId], references: [jobseekerId])
+  category  Category  @relation(fields: [categoryId], references: [categoryId])
+
+  @@id([jobseekerId, categoryId])
 }
 
 /* ================= AVAILABILITY ================= */
@@ -115,6 +127,7 @@ model Category {
 
   jobs Job[]
   jobSeekers JobSeeker[]
+  interestedJobSeekers JobSeekerCategory[]
 }
 
 /* ================= JOB ================= */

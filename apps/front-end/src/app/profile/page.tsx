@@ -75,7 +75,7 @@ type Profile = {
   gender?: Gender | null;
   address?: string | null;
   skills?: string | null;
-  interestedCategory?: { categoryId: number; name: string } | null;
+  interestedCategories?: { categoryId: number; name: string }[];
   availabilities?: Availability[];
 };
 
@@ -214,7 +214,7 @@ export default function ProfilePage() {
 
   const [skillsDialog, setSkillsDialog] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
-  const [editCategory, setEditCategory] = useState<CategoryOption | null>(null);
+  const [editCategories, setEditCategories] = useState<CategoryOption[]>([]);
 
   const [newAvail, setNewAvail] = useState({
     day: 1,
@@ -253,12 +253,11 @@ export default function ProfilePage() {
           address: profileData.address || '',
           skills: profileData.skills || '',
         });
-        if (profileData.interestedCategory) {
-          setEditCategory({
-            value: profileData.interestedCategory.name,
-            label: profileData.interestedCategory.name,
-          });
-        }
+        setEditCategories(
+          (profileData.interestedCategories ?? []).map(
+            (c: { name: string }) => ({ value: c.name, label: c.name }),
+          ),
+        );
         setRequests(requestData);
         setUserRating(ratingData);
         setInvites(Array.isArray(inviteData) ? inviteData : []);
@@ -317,15 +316,16 @@ export default function ProfilePage() {
       },
       body: JSON.stringify({
         ...editProfile,
-        interestedCategoryName: editCategory?.value ?? null,
+        interestedCategoryNames: editCategories.map((c) => c.value),
       }),
     });
     if (res.ok) {
       setProfile({
         ...editProfile,
-        interestedCategory: editCategory
-          ? { categoryId: 0, name: editCategory.value }
-          : null,
+        interestedCategories: editCategories.map((c) => ({
+          categoryId: 0,
+          name: c.value,
+        })),
         availabilities: profile.availabilities,
       });
       toast.success('Амжилттай хадгалагдлаа');
@@ -448,7 +448,6 @@ export default function ProfilePage() {
     now.getDate(),
   );
 
-  // invite-аар ирсэн jobId-уудыг sent tab-аас хасна
   const inviteJobIds = new Set(invites.map((i) => i.job.jobId));
   const sentRequests = requests.filter((r) => !inviteJobIds.has(r.job.jobId));
 
@@ -673,14 +672,19 @@ export default function ProfilePage() {
                   <Tag size={14} className="text-[#2872a1]" /> Сонирхож буй
                   ажлын төрөл
                 </div>
-                {profile.interestedCategory ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-[#2872a1] bg-[#2872a1]/10 px-2.5 py-1 rounded-full">
-                      {profile.interestedCategory.name}
-                    </span>
+                {(profile.interestedCategories ?? []).length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.interestedCategories!.map((cat) => (
+                      <span
+                        key={cat.name}
+                        className="text-xs font-medium text-[#2872a1] bg-[#2872a1]/10 px-2.5 py-1 rounded-full"
+                      >
+                        {cat.name}
+                      </span>
+                    ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-zinc-400">Чиглэл оруулаагүй</p>
+                  <p className="text-xs text-zinc-400">Төрөл оруулаагүй</p>
                 )}
 
                 <Separator />
@@ -1213,20 +1217,52 @@ export default function ProfilePage() {
                 <Tag size={13} className="text-[#2872a1]" /> Сонирхож буй чиглэл
               </Label>
               <Select
-                value={editCategory?.value || ''}
-                onValueChange={(v) => setEditCategory({ value: v, label: v })}
+                value=""
+                onValueChange={(v) => {
+                  if (!editCategories.find((c) => c.value === v))
+                    setEditCategories([
+                      ...editCategories,
+                      { value: v, label: v },
+                    ]);
+                }}
               >
-                <SelectTrigger className="rounded-xl border-zinc-200 focus:ring-[#2872A1] h-10 text-sm">
-                  <SelectValue placeholder="Төрөл сонгох..." />
+                <SelectTrigger className="rounded-xl border-zinc-200 h-10 text-sm">
+                  <SelectValue placeholder="Төрөл нэмэх..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoryOptions.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
+                  {categoryOptions
+                    .filter(
+                      (c) => !editCategories.find((e) => e.value === c.value),
+                    )
+                    .map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
+              {editCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {editCategories.map((c) => (
+                    <span
+                      key={c.value}
+                      className="flex items-center gap-1 text-xs font-medium text-[#2872a1] bg-[#2872a1]/10 px-2.5 py-1 rounded-full"
+                    >
+                      {c.label}
+                      <button
+                        onClick={() =>
+                          setEditCategories(
+                            editCategories.filter((e) => e.value !== c.value),
+                          )
+                        }
+                        className="hover:text-red-400 transition-colors leading-none"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <Separator />

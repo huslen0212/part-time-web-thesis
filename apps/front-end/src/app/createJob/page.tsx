@@ -67,7 +67,7 @@ type SeekerResult = {
   jobseekerId: number;
   userName: string;
   skills: string | null;
-  interestedCategory: string | null;
+  interestedCategories: string[];
   avgRating: number | null;
   ratingCount: number;
   availabilities: AvailabilitySlot[];
@@ -884,10 +884,17 @@ export default function CreateJobPage() {
                           <p className="text-sm font-semibold text-zinc-900">
                             {s.userName}
                           </p>
-                          {s.interestedCategory && (
-                            <Badge className="w-fit bg-[#2872a1] text-white text-xs font-medium hover:bg-[#1f5c82]">
-                              {s.interestedCategory}
-                            </Badge>
+                          {(s.interestedCategories ?? []).length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {s.interestedCategories.map((cat) => (
+                                <Badge
+                                  key={cat}
+                                  className="w-fit bg-[#2872a1] text-white text-xs font-medium hover:bg-[#1f5c82]"
+                                >
+                                  {cat}
+                                </Badge>
+                              ))}
+                            </div>
                           )}
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
