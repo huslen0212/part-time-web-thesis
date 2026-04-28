@@ -38,7 +38,6 @@ export const register = async (req: Request, res: Response) => {
           data: {
             jobseekerId: createdUser.userId,
             userName: jobSeeker?.userName ?? null,
-            phoneNumber: jobSeeker?.phoneNumber ?? null,
             birthDate: jobSeeker?.birthDate
               ? new Date(jobSeeker.birthDate)
               : null,
@@ -54,7 +53,6 @@ export const register = async (req: Request, res: Response) => {
           data: {
             employerId: createdUser.userId,
             employerName: employer?.employerName ?? null,
-            phoneNumber: employer?.phoneNumber ?? null,
           },
         });
       }

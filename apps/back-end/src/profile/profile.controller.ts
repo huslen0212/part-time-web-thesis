@@ -18,7 +18,7 @@ export const getMyProfile = async (
   const profile = await prisma.jobSeeker.findUnique({
     where: { jobseekerId: user.userId },
     include: {
-      user: { select: { email: true } },
+      user: { select: { email: true, phoneNumber: true } },
       interestedCategories: {
         include: { category: { select: { categoryId: true, name: true } } },
       },
@@ -34,11 +34,11 @@ export const getMyProfile = async (
   res.json({
     email: profile.user.email,
     userName: profile.userName,
-    phoneNumber: profile.phoneNumber,
+    phoneNumber: profile.user.phoneNumber,
     birthDate: profile.birthDate,
     gender: profile.gender,
     address: profile.address,
-    skills: profile.skills,
+    skill: profile.skill,
     interestedCategories: profile.interestedCategories.map((jc) => jc.category),
     availabilities: profile.availabilities,
   });
@@ -60,11 +60,11 @@ export const getPublicJobSeekerProfile = async (
     where: { jobseekerId: id },
     select: {
       userName: true,
-      phoneNumber: true,
       gender: true,
       address: true,
-      skills: true,
+      skill: true,
       createdAt: true,
+      user: { select: { phoneNumber: true } },
       interestedCategories: {
         include: { category: { select: { categoryId: true, name: true } } },
       },
@@ -78,7 +78,7 @@ export const getPublicJobSeekerProfile = async (
   }
 
   const requests = await prisma.request.findMany({
-    where: { jobSeekerId: id, status: 'APPROVED' },
+    where: { jobSeekerUserId: id, status: 'APPROVED' },
     include: {
       job: {
         select: {
@@ -114,9 +114,11 @@ export const getPublicJobSeekerProfile = async (
       ? ratings.reduce((s, r) => s + r.score, 0) / ratings.length
       : null;
 
+  const { user: seekerUser, interestedCategories, ...seekerRest } = seeker;
   res.json({
-    ...seeker,
-    interestedCategories: seeker.interestedCategories.map((jc) => jc.category),
+    ...seekerRest,
+    phoneNumber: seekerUser.phoneNumber,
+    interestedCategories: interestedCategories.map((jc) => jc.category),
     workHistory: requests,
     rating: {
       average: avg ? Math.round(avg * 10) / 10 : null,
@@ -170,11 +172,10 @@ export const updateMyProfile = async (
     where: { jobseekerId: user.userId },
     data: {
       userName,
-      phoneNumber,
       birthDate: birthDate ? new Date(birthDate) : undefined,
       gender: gender || undefined,
       address: address || undefined,
-      skills: skills !== undefined ? skills : undefined,
+      skill: skills !== undefined ? skills : undefined,
       interestedCategories: {
         deleteMany: {},
         create: categoryIds.map((categoryId) => ({ categoryId })),
@@ -182,10 +183,13 @@ export const updateMyProfile = async (
     },
   });
 
-  if (email) {
+  if (email || phoneNumber) {
     await prisma.user.update({
       where: { userId: user.userId },
-      data: { email },
+      data: {
+        email: email ?? undefined,
+        phoneNumber: phoneNumber ?? undefined,
+      },
     });
   }
 

@@ -20,7 +20,7 @@ export const getEmployerProfile = async (
     where: { employerId: user.userId },
     include: {
       user: {
-        select: { email: true, createdAt: true },
+        select: { email: true, phoneNumber: true, createdAt: true },
       },
       // tuhain employeriin oruulsan ajiluud
       jobs: {
@@ -49,7 +49,7 @@ export const getEmployerProfile = async (
   //frontend ruu yvuulah data
   res.json({
     employerName: profile.employerName,
-    phoneNumber: profile.phoneNumber,
+    phoneNumber: profile.user.phoneNumber,
     createdAt: profile.createdAt,
     email: profile.user.email,
     userCreatedAt: profile.user.createdAt,
@@ -72,6 +72,7 @@ export const getPublicEmployerProfile = async (
   const profile = await prisma.employer.findUnique({
     where: { employerId: id },
     include: {
+      user: { select: { phoneNumber: true } },
       jobs: {
         orderBy: { createdAt: 'desc' },
         select: {
@@ -114,7 +115,7 @@ export const getPublicEmployerProfile = async (
 
   res.json({
     employerName: profile.employerName,
-    phoneNumber: profile.phoneNumber,
+    phoneNumber: profile.user.phoneNumber,
     createdAt: profile.createdAt,
     jobs: profile.jobs,
     rating: {
@@ -143,16 +144,17 @@ export const updateEmployerProfile = async (
   await prisma.employer.update({
     where: { employerId: user.userId },
     data: {
-      // value bvl update hiigd, baihgui bol huucin heveer ni uldeene
       employerName: employerName ?? undefined,
-      phoneNumber: phoneNumber ?? undefined,
     },
   });
 
-  if (email) {
+  if (email || phoneNumber) {
     await prisma.user.update({
       where: { userId: user.userId },
-      data: { email },
+      data: {
+        email: email ?? undefined,
+        phoneNumber: phoneNumber ?? undefined,
+      },
     });
   }
 

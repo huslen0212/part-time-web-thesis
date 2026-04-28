@@ -39,7 +39,10 @@ export const createRating = async (
       where: {
         jobId,
         status: 'APPROVED',
-        OR: [{ jobSeekerId: fromUserId }, { job: { employerId: fromUserId } }],
+        OR: [
+          { jobSeekerUserId: fromUserId },
+          { job: { employerUserId: fromUserId } },
+        ],
       },
     });
 
@@ -80,7 +83,7 @@ export const getPendingRatings = async (
     const requests = await prisma.request.findMany({
       where: {
         status: 'APPROVED',
-        OR: [{ jobSeekerId: userId }, { job: { employerId: userId } }],
+        OR: [{ jobSeekerUserId: userId }, { job: { employerUserId: userId } }],
       },
       include: { job: true },
     });
@@ -92,7 +95,7 @@ export const getPendingRatings = async (
       if (new Date(r.job.endTime) > now) continue;
 
       const toUserId =
-        r.jobSeekerId === userId ? r.job.employerId : r.jobSeekerId;
+        r.jobSeekerUserId === userId ? r.job.employerUserId : r.jobSeekerUserId;
       if (!toUserId) continue;
 
       const exists = await prisma.rating.findUnique({
@@ -129,19 +132,28 @@ export const getUserRating = async (
       return;
     }
 
-    const ratings = await prisma.rating.findMany({
-      where: { toUserId: userId },
-      select: { score: true },
-    });
+    const m = 5; // threshold
 
-    const avg =
-      ratings.length > 0
-        ? ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length
-        : null;
+    const [userStats, globalStats] = await Promise.all([
+      prisma.rating.aggregate({
+        where: { toUserId: userId },
+        _avg: { score: true },
+        _count: { score: true },
+      }),
+      prisma.rating.aggregate({
+        _avg: { score: true },
+      }),
+    ]);
+
+    const v = userStats._count.score;
+    const R = userStats._avg.score ?? 0;
+    const C = globalStats._avg.score ?? 3.8;
+
+    const bayesian = v > 0 ? (R * v + C * m) / (v + m) : null;
 
     res.json({
-      average: avg ? Math.round(avg * 10) / 10 : null,
-      count: ratings.length,
+      average: bayesian ? Math.round(bayesian * 10) / 10 : null,
+      count: v,
     });
   } catch (error) {
     console.error(error);

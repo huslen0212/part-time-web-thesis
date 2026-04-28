@@ -24,13 +24,13 @@ export const createRequest = async (
       return;
     }
     
-    const jobSeekerId = user.userId;
+    const jobSeekerUserId = user.userId;
 
     //ali hediin huselt ilgeesen esehiig shalgana
     const exists = await prisma.request.findUnique({
       where: {
-        jobSeekerId_jobId: {
-          jobSeekerId,
+        jobSeekerUserId_jobId: {
+          jobSeekerUserId,
           jobId: Number(jobId),
         },
       },
@@ -46,7 +46,7 @@ export const createRequest = async (
   // request-iig DB-s hadgalna
   const request = await prisma.request.create({
     data: {
-      jobSeekerId,
+      jobSeekerUserId,
       jobId: Number(jobId),
       workerCount: Number(workerCount),
     },
@@ -58,14 +58,14 @@ export const createRequest = async (
   // Employer-d notification
   const notif = await prisma.notification.create({
     data: {
-      userId: request.job.employerId,
+      userId: request.job.employerUserId,
       jobId: request.job.jobId,
       title: 'Шинэ хүсэлт ирлээ',
       message: `${request.job.title} ажилд шинэ хүсэлт ирлээ`,
       type: 'REQUEST_CREATED',
     },
   });
-  sendToUser(request.job.employerId, notif);
+  sendToUser(request.job.employerUserId, notif);
 
     res.json(request);
   } catch (error) {
@@ -87,13 +87,13 @@ export const getEmployerRequests = async (
       return;
     }
 
-    const employerId = user.userId;
+    const employerUserId = user.userId;
 
     // tuhain employer-iin ajluudiin request-uudiig avna
     const requests = await prisma.request.findMany({
       where: {
         job: {
-          employerId,
+          employerUserId,
         },
       },
       include: {
@@ -108,7 +108,7 @@ export const getEmployerRequests = async (
           select: {
             jobseekerId: true,
             userName: true,
-            phoneNumber: true,
+            user: { select: { phoneNumber: true } },
           },
         },
       },
@@ -139,7 +139,7 @@ export const getMyRequests = async (
 
   const requests = await prisma.request.findMany({
     where: {
-      jobSeekerId: user.userId,
+      jobSeekerUserId: user.userId,
     },
     include: {
       job: {
@@ -188,7 +188,7 @@ export const updateRequestStatus = async (
       where: {
         requestId: Number(requestId),
         job: {
-          employerId: user.userId,
+          employerUserId: user.userId,
         },
       },
       include: {
@@ -213,7 +213,7 @@ export const updateRequestStatus = async (
 
         await tx.request.updateMany({
           where: {
-            jobSeekerId: request.jobSeekerId,
+            jobSeekerUserId: request.jobSeekerUserId,
             status: 'PENDING',
             requestId: {
               not: request.requestId,
@@ -233,7 +233,7 @@ export const updateRequestStatus = async (
 
   const statusNotif = await tx.notification.create({
     data: {
-      userId: request.jobSeekerId,
+      userId: request.jobSeekerUserId,
       jobId: request.job.jobId,
       title:
         status === 'APPROVED'
@@ -249,7 +249,7 @@ export const updateRequestStatus = async (
           : 'REQUEST_REJECTED',
     },
   });
-  sendToUser(request.jobSeekerId, statusNotif);
+  sendToUser(request.jobSeekerUserId, statusNotif);
 
       return approvedRequest;
     });
@@ -273,7 +273,7 @@ export const getMyInviteRequests = async (
   }
 
   const invites = await prisma.request.findMany({
-    where: { jobSeekerId: user.userId, type: 'JOB_INVITE' },
+    where: { jobSeekerUserId: user.userId, type: 'JOB_INVITE' },
     include: {
       job: {
         select: {
@@ -314,7 +314,7 @@ export const respondToInvite = async (
 
     const requestId = Number(req.params.requestId);
     const invite = await prisma.request.findFirst({
-      where: { requestId, jobSeekerId: user.userId, type: 'JOB_INVITE' },
+      where: { requestId, jobSeekerUserId: user.userId, type: 'JOB_INVITE' },
       include: { job: true },
     });
 
@@ -332,7 +332,7 @@ export const respondToInvite = async (
         // Давхардсан хүлээгдэж буй хүсэлтүүд цуцлах
         await tx.request.updateMany({
           where: {
-            jobSeekerId: user.userId,
+            jobSeekerUserId: user.userId,
             status: 'PENDING',
             requestId: { not: requestId },
             job: {

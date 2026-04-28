@@ -7,8 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/* ================= ENUMS ================= */
-
 enum UserRole {
   JOB_SEEKER
   EMPLOYER
@@ -42,11 +40,12 @@ enum Gender {
 /* ================= MODELS ================= */
 
 model User {
-  userId    Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      UserRole
-  createdAt DateTime @default(now())
+  userId      Int      @id @default(autoincrement())
+  email       String   @unique
+  password    String
+  phoneNumber String?
+  role        UserRole
+  createdAt   DateTime @default(now())
 
   jobSeeker JobSeeker?
   employer  Employer?
@@ -60,43 +59,35 @@ model User {
 /* ================= JOB SEEKER ================= */
 
 model JobSeeker {
-  jobseekerId Int @id
+  jobseekerId Int       @id
   userName    String?
-  phoneNumber String?
   birthDate   DateTime?
   gender      Gender?
   address     String?
+  skill       String?   @db.VarChar(250)
+  createdAt   DateTime  @default(now())
 
-  skills String? @db.VarChar(250)
-
-  interestedCategoryId Int?
-  interestedCategory   Category? @relation(fields: [interestedCategoryId], references: [categoryId])
-
-  createdAt DateTime @default(now())
-
-  user     User     @relation(fields: [jobseekerId], references: [userId])
-  requests Request[]
-
+  user         User               @relation(fields: [jobseekerId], references: [userId])
+  requests     Request[]
   availabilities AvailabilityTime[]
   interestedCategories JobSeekerCategory[]
 }
 
 /* ================= INTERESTED CATEGORIES ================= */
 model JobSeekerCategory {
-  jobseekerId Int
-  categoryId  Int
+  jobSeekerUserId Int
+  categoryId      Int
 
-  jobSeeker JobSeeker @relation(fields: [jobseekerId], references: [jobseekerId])
+  jobSeeker JobSeeker @relation(fields: [jobSeekerUserId], references: [jobseekerId])
   category  Category  @relation(fields: [categoryId], references: [categoryId])
 
-  @@id([jobseekerId, categoryId])
+  @@id([jobSeekerUserId, categoryId])
 }
 
 /* ================= AVAILABILITY ================= */
 
 model AvailabilityTime {
-  id Int @id @default(autoincrement())
-
+  id          Int      @id @default(autoincrement())
   jobSeekerId Int
   day         Int
   startTime   DateTime
@@ -110,12 +101,11 @@ model AvailabilityTime {
 /* ================= EMPLOYER ================= */
 
 model Employer {
-  employerId   Int    @id
+  employerId   Int      @id
   employerName String?
-  phoneNumber  String?
   createdAt    DateTime @default(now())
 
-  user User @relation(fields: [employerId], references: [userId])
+  user User  @relation(fields: [employerId], references: [userId])
   jobs Job[]
 }
 
@@ -125,32 +115,30 @@ model Category {
   categoryId Int    @id @default(autoincrement())
   name       String @unique
 
-  jobs Job[]
-  jobSeekers JobSeeker[]
+  jobs                 Job[]
   interestedJobSeekers JobSeekerCategory[]
 }
 
 /* ================= JOB ================= */
 
 model Job {
-  jobId       Int      @id @default(autoincrement())
-  title       String
-  description String
-  location    String
-  latitude    Float?
-  longitude   Float?
-  salary      Int
-  startTime   DateTime
-  endTime     DateTime
+  jobId          Int      @id @default(autoincrement())
+  employerUserId Int
+  categoryId     Int
+  title          String
+  description    String
+  location       String
+  latitude       Float?
+  longitude      Float?
+  salary         Int
+  startTime      DateTime
+  endTime        DateTime
   numberOfWorker Int?
-  isTemplate  Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  isTemplate     Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
-  employerId Int
-  employer   Employer @relation(fields: [employerId], references: [employerId])
-
-  categoryId Int
-  category   Category @relation(fields: [categoryId], references: [categoryId])
+  employer Employer @relation(fields: [employerUserId], references: [employerId])
+  category Category @relation(fields: [categoryId], references: [categoryId])
 
   requests Request[]
   ratings  Rating[]
@@ -159,33 +147,30 @@ model Job {
 /* ================= REQUEST ================= */
 
 model Request {
-  requestId   Int           @id @default(autoincrement())
-  status      RequestStatus @default(PENDING)
-  type        RequestType   @default(JOB_REQUEST)
-  createdAt   DateTime      @default(now())
-  workerCount Int           @default(1)
+  requestId       Int           @id @default(autoincrement())
+  jobSeekerUserId Int
+  jobId           Int
+  status          RequestStatus @default(PENDING)
+  type            RequestType   @default(JOB_REQUEST)
+  createdAt       DateTime      @default(now())
+  workerCount     Int           @default(1)
 
-  jobSeekerId Int
-  jobId       Int
-
-  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [jobseekerId])
+  jobSeeker JobSeeker @relation(fields: [jobSeekerUserId], references: [jobseekerId])
   job       Job       @relation(fields: [jobId], references: [jobId])
 
-  @@unique([jobSeekerId, jobId])
+  @@unique([jobSeekerUserId, jobId])
 }
 
 /* ================= RATING ================= */
 
 model Rating {
-  ratingId Int @id @default(autoincrement())
-
+  ratingId   Int      @id @default(autoincrement())
   fromUserId Int
   toUserId   Int
   jobId      Int
   score      Int
   comment    String?
-
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   fromUser User @relation("RatingFromUser", fields: [fromUserId], references: [userId])
   toUser   User @relation("RatingToUser", fields: [toUserId], references: [userId])
@@ -197,16 +182,14 @@ model Rating {
 /* ================= NOTIFICATION ================= */
 
 model Notification {
-  notificationId Int @id @default(autoincrement())
-
-  userId  Int
-  jobId   Int?
-  title   String
-  message String
-  type    NotificationType
-
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  notificationId Int              @id @default(autoincrement())
+  userId         Int
+  jobId          Int?
+  title          String
+  message        String
+  type           NotificationType
+  isRead         Boolean          @default(false)
+  createdAt      DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [userId])
 }

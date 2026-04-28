@@ -115,7 +115,7 @@ export const getJobById = async (req: Request, res: Response) => {
           select: {
             employerId: true,
             employerName: true,
-            phoneNumber: true,
+            user: { select: { phoneNumber: true } },
           },
         },
         category: { select: { categoryId: true, name: true } },
@@ -143,7 +143,7 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
 
     const jobs = await prisma.job.findMany({
       where: {
-        employerId: req.user.userId,
+        employerUserId: req.user.userId,
         isTemplate: true,
       },
       select: {
@@ -183,7 +183,7 @@ export const removeTemplate = async (req: AuthRequest, res: Response) => {
     const template = await prisma.job.findFirst({
       where: {
         jobId,
-        employerId: req.user.userId,
+        employerUserId: req.user.userId,
         isTemplate: true,
       },
     });
@@ -335,7 +335,7 @@ export const getMatchingSeekers = async (req: AuthRequest, res: Response) => {
       return {
         jobseekerId: s.jobseekerId,
         userName: s.userName ?? 'Нэргүй',
-        skills: s.skills ?? null,
+        skill: s.skill ?? null,
         interestedCategories: s.interestedCategories.map(
           (jc) => jc.category.name,
         ),
@@ -372,19 +372,19 @@ export const getMyPastWorkers = async (req: AuthRequest, res: Response) => {
     const requests = await prisma.request.findMany({
       where: {
         status: 'APPROVED',
-        job: { employerId: req.user.userId },
+        job: { employerUserId: req.user.userId },
       },
-      distinct: ['jobSeekerId'],
+      distinct: ['jobSeekerUserId'],
       include: {
         jobSeeker: {
           select: {
             jobseekerId: true,
             userName: true,
-            phoneNumber: true,
-            skills: true,
+            skill: true,
             interestedCategories: {
               include: { category: { select: { name: true } } },
             },
+            user: { select: { phoneNumber: true } },
           },
         },
       },
@@ -393,17 +393,17 @@ export const getMyPastWorkers = async (req: AuthRequest, res: Response) => {
     const result = await Promise.all(
       requests.map(async (r) => {
         const ratings = await prisma.rating.aggregate({
-          where: { toUserId: r.jobSeekerId },
+          where: { toUserId: r.jobSeekerUserId },
           _avg: { score: true },
           _count: { score: true },
         });
         return {
           jobseekerId: r.jobSeeker.jobseekerId,
           userName: r.jobSeeker.userName,
-          phoneNumber: r.jobSeeker.phoneNumber,
-          skills: r.jobSeeker.skills,
+          phoneNumber: r.jobSeeker.user.phoneNumber,
+          skill: r.jobSeeker.skill,
           interestedCategories: r.jobSeeker.interestedCategories.map(
-            (jc) => jc.category.name,
+            (jc: { category: { name: string } }) => jc.category.name,
           ),
           avgRating: ratings._avg.score,
           ratingCount: ratings._count.score,
@@ -428,7 +428,9 @@ export const getMyJobStatus = async (req: AuthRequest, res: Response) => {
     if (isNaN(jobId)) return res.status(400).json({ message: 'ID буруу' });
 
     const request = await prisma.request.findUnique({
-      where: { jobSeekerId_jobId: { jobSeekerId: req.user.userId, jobId } },
+      where: {
+        jobSeekerUserId_jobId: { jobSeekerUserId: req.user.userId, jobId },
+      },
       select: { requestId: true, type: true, status: true },
     });
 
@@ -461,7 +463,7 @@ export const inviteSeeker = async (req: AuthRequest, res: Response) => {
     }
 
     const job = await prisma.job.findFirst({
-      where: { jobId, employerId: req.user.userId },
+      where: { jobId, employerUserId: req.user.userId },
     });
     if (!job) return res.status(404).json({ message: 'Ажил олдсонгүй' });
 
@@ -472,7 +474,7 @@ export const inviteSeeker = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Ажил хайгч олдсонгүй' });
 
     const existing = await prisma.request.findUnique({
-      where: { jobSeekerId_jobId: { jobSeekerId: seekerId, jobId } },
+      where: { jobSeekerUserId_jobId: { jobSeekerUserId: seekerId, jobId } },
     });
     if (existing) {
       return res
@@ -482,7 +484,7 @@ export const inviteSeeker = async (req: AuthRequest, res: Response) => {
 
     await prisma.request.create({
       data: {
-        jobSeekerId: seekerId,
+        jobSeekerUserId: seekerId,
         jobId,
         type: 'JOB_INVITE',
         status: 'PENDING',

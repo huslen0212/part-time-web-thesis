@@ -26,7 +26,7 @@ type JobItem = {
   jobId: number;
   title: string;
   location: string;
-  category: string;
+  category: { categoryId: number; name: string };
   salary: number;
   startTime: string;
   endTime: string;
@@ -98,15 +98,6 @@ function formatDateTime(d: string) {
     })
   );
 }
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Үйлчилгээ: 'bg-blue-50 text-blue-700',
-  Маркетинг: 'bg-purple-50 text-purple-700',
-  IT: 'bg-emerald-50 text-emerald-700',
-  Оффис: 'bg-amber-50 text-amber-700',
-  Хүргэлт: 'bg-orange-50 text-orange-700',
-  Барилга: 'bg-zinc-100 text-zinc-700',
-};
 
 export default function EmployerPublicPage() {
   const { id } = useParams<{ id: string }>();
@@ -240,14 +231,8 @@ export default function EmployerPublicPage() {
                             <p className="text-sm font-semibold text-zinc-900 leading-tight line-clamp-2 flex-1">
                               {job.title}
                             </p>
-                            <span
-                              className={cn(
-                                'text-[10px] px-2 py-1 rounded-lg shrink-0 font-medium',
-                                CATEGORY_COLORS[job.category] ??
-                                  'bg-zinc-100 text-zinc-600',
-                              )}
-                            >
-                              {job.category}
+                            <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-600 border-blue-200">
+                              {job.category?.name}
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-x-3 gap-y-1">
