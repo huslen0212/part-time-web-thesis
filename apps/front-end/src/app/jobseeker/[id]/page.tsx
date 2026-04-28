@@ -57,9 +57,9 @@ type Profile = {
   phoneNumber: string | null;
   gender: string | null;
   address: string | null;
-  skills: string | null;
+  skill: string | null;
   createdAt: string;
-  interestedCategory: { categoryId: number; name: string } | null;
+  interestedCategories: { categoryId: number; name: string }[];
   availabilities: Availability[];
   workHistory: WorkItem[];
   rating: {
@@ -229,11 +229,16 @@ export default function JobSeekerProfilePage() {
                   <Briefcase size={14} className="text-[#2872a1]" /> Сонирхож
                   буй ажлын төрөл
                 </div>
-                {profile.interestedCategory ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-[#2872a1] bg-[#2872a1]/10 px-2.5 py-1 rounded-full">
-                      {profile.interestedCategory.name}
-                    </span>
+                {profile.interestedCategories.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.interestedCategories.map((cat) => (
+                      <span
+                        key={cat.categoryId}
+                        className="text-xs font-medium text-[#2872a1] bg-[#2872a1]/10 px-2.5 py-1 rounded-full"
+                      >
+                        {cat.name}
+                      </span>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-xs text-zinc-400">Чиглэл оруулаагүй</p>
@@ -245,8 +250,8 @@ export default function JobSeekerProfilePage() {
                 <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                   <Star size={14} className="text-[#2872a1]" /> Миний чадвар
                 </div>
-                {profile.skills ? (
-                  <p className="text-xs text-zinc-600">{profile.skills}</p>
+                {profile.skill ? (
+                  <p className="text-xs text-zinc-600">{profile.skill}</p>
                 ) : (
                   <p className="text-xs text-zinc-400">Чадвар оруулаагүй</p>
                 )}

@@ -69,18 +69,12 @@ export default function RegisterPage() {
     const payload =
       role === 'JOB_SEEKER'
         ? {
-            user: { email, password, role },
-            jobSeeker: {
-              userName,
-              phoneNumber: jobSeekerPhone,
-              birthDate,
-              gender,
-              address,
-            },
+            user: { email, password, role, phoneNumber: jobSeekerPhone },
+            jobSeeker: { userName, birthDate, gender, address },
           }
         : {
-            user: { email, password, role },
-            employer: { employerName, phoneNumber: employerPhone },
+            user: { email, password, role, phoneNumber: employerPhone },
+            employer: { employerName },
           };
 
     setLoading(true);

@@ -29,6 +29,7 @@ export const register = async (req: Request, res: Response) => {
           email: user.email,
           password: user.password,
           role: user.role,
+          phoneNumber: user.phoneNumber ?? null,
         },
       });
 

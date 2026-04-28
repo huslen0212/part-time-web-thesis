@@ -117,7 +117,16 @@ export const getEmployerRequests = async (
       },
     });
 
-    res.json(requests);
+    const mapped = requests.map((r) => ({
+      ...r,
+      jobSeeker: {
+        jobseekerId: r.jobSeeker.jobseekerId,
+        userName: r.jobSeeker.userName,
+        phoneNumber: r.jobSeeker.user?.phoneNumber ?? null,
+      },
+    }));
+
+    res.json(mapped);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Хүсэлтүүдийг авахад алдаа гарлаа' });
